@@ -55,6 +55,12 @@ body {
 	font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Ubuntu, roboto, noto, arial, sans-serif;
 }
 
+.wrap {
+	width: 95%;
+	max-width: 700px;
+	margin: 20px auto;
+}
+
 h1 {
 	font-size: 2em;
 	font-weight: bold;
@@ -63,15 +69,40 @@ h1 {
 
 header {
 	margin-bottom: 20px;
+	strong {
+		font-weight: bold;
+	}
 	p {
 		line-height: 1.2em;
 		margin-bottom: 0.8em;
+		&:last-child {
+			margin-bottom: 0;
+		}
 	}
 	a {
 		&:link, &:visited {
 			color: #0063A3;
 		}
 	}
+	#aboutData {
+		background: #F0F0F0;
+		border-radius: 5px;
+		padding: 10px;
+		margin-bottom: 10px;
+		display: inline-block;
+		#aboutDataHeader {
+			margin-bottom: 0;	
+			&:hover {
+				cursor: pointer;
+				color: #666;
+			}
+		}
+		#aboutDataInner {
+			display: none;
+			margin-top: 0.8em;
+		}
+	}
+
 }
 
 #filter {

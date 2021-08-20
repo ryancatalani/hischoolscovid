@@ -62,6 +62,12 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Ubuntu, roboto, noto, arial, sans-serif;
 }
 
+.wrap {
+  width: 95%;
+  max-width: 700px;
+  margin: 20px auto;
+}
+
 h1 {
   font-size: 2em;
   font-weight: bold;
@@ -71,12 +77,36 @@ h1 {
 header {
   margin-bottom: 20px;
 }
+header strong {
+  font-weight: bold;
+}
 header p {
   line-height: 1.2em;
   margin-bottom: 0.8em;
 }
+header p:last-child {
+  margin-bottom: 0;
+}
 header a:link, header a:visited {
   color: #0063A3;
+}
+header #aboutData {
+  background: #F0F0F0;
+  border-radius: 5px;
+  padding: 10px;
+  margin-bottom: 10px;
+  display: inline-block;
+}
+header #aboutData #aboutDataHeader {
+  margin-bottom: 0;
+}
+header #aboutData #aboutDataHeader:hover {
+  cursor: pointer;
+  color: #666;
+}
+header #aboutData #aboutDataInner {
+  display: none;
+  margin-top: 0.8em;
 }
 
 #filter input {
