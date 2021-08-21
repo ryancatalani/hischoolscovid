@@ -51,6 +51,8 @@ table {
 
 // DOE
 
+$blue: #0063A3;
+
 body {
 	font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Ubuntu, roboto, noto, arial, sans-serif;
 }
@@ -81,7 +83,7 @@ header {
 	}
 	a {
 		&:link, &:visited {
-			color: #0063A3;
+			color: $blue;
 		}
 	}
 	#aboutData {
@@ -244,4 +246,20 @@ header {
 #loading {
 	margin-bottom: 10px;
 	color: #666;
+}
+
+.zoomTo {
+	font-weight: normal; 
+	color: $blue;
+	margin-left: 20px;
+	&:hover {
+		cursor: pointer;
+		text-decoration: underline;
+	}
+}
+
+.leaflet-popup-content {
+	.zoomTo {
+		display: none;
+	}
 }

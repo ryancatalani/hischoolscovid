@@ -88,11 +88,13 @@
 				return createSafeName(this.name);
 			}
 			element() {
-				var template = _.template("<div class='school' data-name='<%= safeName %>'><div class='schoolName'><%= name %></div><div class='schoolDesc'>Total cases reported: <%= cumulative %></div></div>");
+				var template = _.template("<div class='school' data-name='<%= safeName %>'><div class='schoolName'><%= name %></div><div class='schoolDesc'>Total cases reported: <%= cumulative %><span class='zoomTo' data-lat='<%= lat %>' data-long='<%= long %>'><i class='fas fa-search-plus'></i> Zoom to this school</span></div></div>");
 				return template({
 					name: this.name, 
 					safeName: this.safeName(),
-					cumulative: this.cumulative
+					cumulative: this.cumulative,
+					lat: this.lat,
+					long: this.long
 				});
 			}
 		}
@@ -142,9 +144,11 @@
 			}, 300);
 			$(window).resize(calculateLayout);
 
+			// https://github.com/Leaflet/Leaflet/issues/7255#issuecomment-849638476
 			var schoolMap = L.map('schoolMap', {
 				center: [21.311389, -157.796389],
-				zoom: defaultZoom
+				zoom: defaultZoom,
+				"tap": false
 			});
 
 			L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -163,6 +167,10 @@
 				}
 			});
 
+			markers.on('clusterclick', function (a) {
+				a.layer.zoomToBounds({padding: [20, 20]});
+			});
+
 			// Set up filter
 
 			var runFilter = _.debounce(function() {
@@ -174,7 +182,8 @@
 					$("#loading").slideUp("fast");
 					_(allSchools).each(function(school) {
 						if (school.marker !== undefined && !markers.hasLayer(school.marker)) {
-							markers.addLayer(school.marker);
+							var marker = school.marker;
+							markers.addLayer(marker);
 						}
 					});
 					return $(".school").show();
@@ -213,6 +222,23 @@
 			$("#filterClear").click(function() {
 				$("#filterInput").val("").trigger("keyup");
 			})
+
+			// Set up Zoom
+
+			$("#schoolList").on("click", ".zoomTo", function() {
+				var lat = $(this).data("lat");
+				var long = $(this).data("long");
+				// schoolMap.flyTo([lat, long], 12, {duration: 0.2});
+
+				var name = $(this).parents(".school").data("name");
+				var school = _(allSchools).find(function(s) { return s.safeName() == name });
+				if (school !== undefined && school.marker !== undefined ) {
+					var marker = school.marker;
+					markers.zoomToShowLayer(marker, function() {
+						marker.openPopup();
+					});
+				}
+			});
 
 			// Set up data
 

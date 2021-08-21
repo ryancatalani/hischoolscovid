@@ -244,4 +244,18 @@ header #aboutData #aboutDataInner {
   color: #666;
 }
 
+.zoomTo {
+  font-weight: normal;
+  color: #0063A3;
+  margin-left: 20px;
+}
+.zoomTo:hover {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.leaflet-popup-content .zoomTo {
+  display: none;
+}
+
 /*# sourceMappingURL=main.css.map */
