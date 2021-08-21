@@ -202,6 +202,10 @@ header {
 		float: left;
 		width: 300px;
 		margin-right: 10px;
+		&.publicSubmission {
+			border-color: $blue;
+			border-style: dashed;
+		}
 		strong {
 			font-size: 0.8em;
 			font-weight: bold;

@@ -202,6 +202,10 @@ header #aboutData #aboutDataInner {
   width: 300px;
   margin-right: 10px;
 }
+.school .case.publicSubmission {
+  border-color: #0063A3;
+  border-style: dashed;
+}
 .school .case strong {
   font-size: 0.8em;
   font-weight: bold;

@@ -38,8 +38,8 @@
 				<p id="aboutDataHeader"><i class="fas fa-info-circle"></i> <strong>About the data & submit missing data</strong></p>
 				<div id="aboutDataInner">
 					<p>Last updated: Aug. 20, 2021</p>
-					<p>This data is compiled from the <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/COVID-19-Information-Updates.aspx" target="_blank">weekly Department of Education releases</a>, starting from July 24, 2021. The source data is accessible in <a href="https://docs.google.com/spreadsheets/d/1_38-GnUcrA4_jYAZpZWDl5ph4Gi_sAzg11PT9tMZW7Y/edit?usp=sharing" target="_blank">this Google Sheet</a>.</p>
-					<p>If you have any data that’s missing, or see something inaccurate, click here to <a href="/submit.html">submit additional data</a>.</p>
+					<p>This data is primarily compiled from the <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/COVID-19-Information-Updates.aspx" target="_blank">weekly Department of Education releases</a>, starting from July 24, 2021. The source data is accessible in <a href="https://docs.google.com/spreadsheets/d/1_38-GnUcrA4_jYAZpZWDl5ph4Gi_sAzg11PT9tMZW7Y/edit?usp=sharing" target="_blank">this Google Sheet</a>.</p>
+					<p>If you have any data that’s missing, or see something inaccurate, click here to <a href="/submit.html">submit additional data</a>. Public data submissions are indicated in the list below.</p>
 				</div>
 			</div>
 
@@ -81,18 +81,28 @@
 				this.lat = args.lat;
 				this.long = args.long;
 				this.cumulative = args.cumulative;
+				this.cumulativePublic = args.cumulativePublic;
 				this.marker = args.marker;
 				this.id = args.id;
 			}
 			safeName() {
 				return createSafeName(this.name);
 			}
+			cumulativeText() {
+				var text = this.cumulative;
+				if (this.cumulativePublic !== undefined && this.cumulativePublic > 0) {
+					var doeTotal = this.cumulative - this.cumulativePublic;
+					text += " (DOE reported: " + doeTotal + ", "
+					text += "public submissions: " + this.cumulativePublic + ")";
+				}
+				return text;
+			}
 			element() {
 				var template = _.template("<div class='school' data-name='<%= safeName %>'><div class='schoolName'><%= name %></div><div class='schoolDesc'>Total cases reported: <%= cumulative %><span class='zoomTo' data-lat='<%= lat %>' data-long='<%= long %>'><i class='fas fa-search-plus'></i> Zoom to this school</span></div></div>");
 				return template({
 					name: this.name, 
 					safeName: this.safeName(),
-					cumulative: this.cumulative,
+					cumulative: this.cumulativeText(),
 					lat: this.lat,
 					long: this.long
 				});
@@ -106,13 +116,28 @@
 				this.reportingPeriod = args.reportingPeriod;
 				this.source = args.source;
 				this.status = args.status;
+				this.publicSubmission = args.publicSubmission;
+			}
+			sourceText() {
+				if (this.publicSubmission) {
+					return "Public submission";
+				}
+				return "DOE data • Reporting period: " + this.reportingPeriod;
+			}
+			classText() {
+				var c = "case";
+				if (this.publicSubmission) {
+					c += " publicSubmission";
+				}
+				return c;
 			}
 			element() {
-				var template = _.template("<div class='case'><p><strong>Case <%= status %></strong></p><p>Date reported: <%= dateReported %></p><p>Last date individual was on campus: <%= lastDateOnCampus %></p><p>Reporting period: <%= reportingPeriod %></p><a href='<%= source %>' target='_blank'>Source</a>");
+				var template = _.template("<div class='<%= classText %>'><p><strong>Case <%= status %></strong></p><p>Date reported: <%= dateReported %></p><p>Last date individual was on campus: <%= lastDateOnCampus %></p><p>Source: <%= sourceText %></p><a href='<%= source %>' target='_blank'>View source</a>");
 				return template({
+					classText: this.classText(),
 					dateReported: this.dateReported,
 					lastDateOnCampus: this.lastDateOnCampus,
-					reportingPeriod: this.reportingPeriod,
+					sourceText: this.sourceText(),
 					source: this.source,
 					status: this.status
 				});
@@ -270,7 +295,8 @@
 							lastDateOnCampus: row["Last date individual was on campus"],
 							reportingPeriod: row["Reporting period"],
 							source: row["Source"],
-							status: row["Case Status"]
+							status: row["Case Status"],
+							publicSubmission: row["Public Submission"] == "TRUE"
 						});
 						allCases.push(theCase);
 
@@ -278,9 +304,12 @@
 						return row["School Name"];
 
 					}).each(function(schoolCases, schoolName) {
+						var cumulativePublic = _(schoolCases).filter(function(row){ return row["Public Submission"] == "TRUE" });
+
 						var school = new School({
 							name: schoolName,
-							cumulative: schoolCases.length
+							cumulative: schoolCases.length,
+							cumulativePublic: cumulativePublic.length
 						});
 
 						var crosswalkItem = _(crosswalk).find(function(pairing) {
