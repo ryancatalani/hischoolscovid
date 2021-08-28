@@ -40,6 +40,7 @@
 					<p>Last updated: Aug. 20, 2021</p>
 					<p>This data is primarily compiled from the <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/COVID-19-Information-Updates.aspx" target="_blank">weekly Department of Education releases</a>, starting from July 24, 2021. The source data is accessible in <a href="https://docs.google.com/spreadsheets/d/1_38-GnUcrA4_jYAZpZWDl5ph4Gi_sAzg11PT9tMZW7Y/edit?usp=sharing" target="_blank">this Google Sheet</a>.</p>
 					<p>If you have any data that’s missing, or see something inaccurate, click here to <a href="/submit.html">submit additional data</a>. Public data submissions are indicated in the list below.</p>
+					<p>School enrollment figures are from the 2020-21 school year, <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/2020-21-enrollment.aspx" target="_blank">via the DOE</a>.</p>
 				</div>
 			</div>
 
@@ -84,6 +85,7 @@
 				this.cumulativePublic = args.cumulativePublic;
 				this.marker = args.marker;
 				this.id = args.id;
+				this.enrollment = args.enrollment;
 			}
 			safeName() {
 				return createSafeName(this.name);
@@ -97,14 +99,24 @@
 				}
 				return text;
 			}
+			enrollmentText() {
+				var text = "";
+				if (this.enrollment !== undefined && this.enrollment > 0) {
+					var ratio = Math.round((1.0 * this.enrollment) / this.cumulative);
+					text += "About 1 in " + ratio.toLocaleString() + " students ";
+					text += "(SY20-21 enrollment: " + this.enrollment.toLocaleString() + ")";
+				}
+				return text;
+			}
 			element() {
-				var template = _.template("<div class='school' data-name='<%= safeName %>'><div class='schoolName'><%= name %></div><div class='schoolDesc'>Total cases reported: <%= cumulative %><span class='zoomTo' data-lat='<%= lat %>' data-long='<%= long %>'><i class='fas fa-search-plus'></i> Zoom to this school</span></div></div>");
+				var template = _.template("<div class='school' data-name='<%= safeName %>'><div class='schoolName'><%= name %></div><div class='schoolDesc'>Total cases reported: <%= cumulative %><span class='zoomTo' data-lat='<%= lat %>' data-long='<%= long %>'><i class='fas fa-search-plus'></i> Zoom to this school</span></div><div class='schoolEnrollment'><%= enrollment %></div></div>");
 				return template({
 					name: this.name, 
 					safeName: this.safeName(),
 					cumulative: this.cumulativeText(),
 					lat: this.lat,
-					long: this.long
+					long: this.long,
+					enrollment: this.enrollmentText()
 				});
 			}
 		}
@@ -330,6 +342,7 @@
 						if (schoolObj !== undefined) {
 							school.lat = parseFloat(schoolObj["Y"]);
 							school.long = parseFloat(schoolObj["X"]);
+							school.enrollment = parseInt(schoolObj.Enrollment);
 						}
 
 						allSchools.push(school);

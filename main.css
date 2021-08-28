@@ -186,6 +186,11 @@ header #aboutData #aboutDataInner {
 .school .schoolDesc {
   font-weight: bold;
 }
+.school .schoolEnrollment {
+  margin-top: 10px;
+  font-size: 0.8em;
+  line-height: 1em;
+}
 .school .casesOuter {
   margin-top: 20px;
   width: 100%;
