@@ -37,8 +37,9 @@
 			<div id="aboutData">
 				<p id="aboutDataHeader"><i class="fas fa-info-circle"></i> <strong>About the data & submit missing data</strong></p>
 				<div id="aboutDataInner">
-					<p>Last updated: Aug. 27, 2021</p>
-					<p>This data is primarily compiled from the <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/COVID-19-Information-Updates.aspx" target="_blank">weekly Department of Education releases</a>, starting from July 24, 2021.</p>
+					<p>Last updated: Aug. 20, 2021</p>
+					<p>This data is primarily compiled from the <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/COVID-19-Information-Updates.aspx" target="_blank">weekly Department of Education releases</a>, starting from July 24, 2021. The source data is accessible in <a href="https://docs.google.com/spreadsheets/d/1_38-GnUcrA4_jYAZpZWDl5ph4Gi_sAzg11PT9tMZW7Y/edit?usp=sharing" target="_blank">this Google Sheet</a>.</p>
+					<p>If you have any data that’s missing, or see something inaccurate, click here to <a href="/submit.html">submit additional data</a>. Public data submissions are indicated in the list below.</p>
 					<p>School enrollment figures are from the 2020-21 school year, <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/2020-21-enrollment.aspx" target="_blank">via the DOE</a>.</p>
 				</div>
 			</div>
@@ -278,7 +279,7 @@
 
 			// Set up data
 
-			var dataURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYH-1yDrq_TA7k3IUYy0J7SVbSRO850SmeUjXVOo0K7PSPqdBXAsjgO4sjmpFLZ3vamRmUBZMWg2Iy/pub?gid=1726552848&single=true&output=csv";
+			var dataURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYH-1yDrq_TA7k3IUYy0J7SVbSRO850SmeUjXVOo0K7PSPqdBXAsjgO4sjmpFLZ3vamRmUBZMWg2Iy/pub?gid=0&single=true&output=csv";
 			var schoolsURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYH-1yDrq_TA7k3IUYy0J7SVbSRO850SmeUjXVOo0K7PSPqdBXAsjgO4sjmpFLZ3vamRmUBZMWg2Iy/pub?gid=1271858449&single=true&output=csv";
 			var crosswalkURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYH-1yDrq_TA7k3IUYy0J7SVbSRO850SmeUjXVOo0K7PSPqdBXAsjgO4sjmpFLZ3vamRmUBZMWg2Iy/pub?gid=280592408&single=true&output=csv";
 
@@ -299,19 +300,51 @@
 
 					// Parse data
 
-					_(caseData).each(function(row) {
+					_.chain(caseData).each(function(row) {
+						var theCase = new Case({
+							school: row["School Name"],
+							dateReported: row["Date Case Reported"],
+							lastDateOnCampus: row["Last date individual was on campus"],
+							reportingPeriod: row["Reporting period"],
+							source: row["Source"],
+							status: row["Case Status"],
+							publicSubmission: row["Public Submission"] == "TRUE"
+						});
+						allCases.push(theCase);
+
+					}).groupBy(function(row){
+						return row["School Name"];
+
+					}).each(function(schoolCases, schoolName) {
+						var cumulativePublic = _(schoolCases).filter(function(row){ return row["Public Submission"] == "TRUE" });
+
 						var school = new School({
-							name: row.Name,
-							cumulative: parseInt(row.Cases)
+							name: schoolName,
+							cumulative: schoolCases.length,
+							cumulativePublic: cumulativePublic.length
 						});
-						var schoolObj = _(schools).find(function(sch) {
-							return sch.sch_name == school.name;
+
+						var crosswalkItem = _(crosswalk).find(function(pairing) {
+							return pairing["Data name"] == schoolName;
 						});
-						if (schoolObj !== undefined) {
-							school.lat = parseFloat(schoolObj.Y);
-							school.long = parseFloat(schoolObj.X);
-							school.enrollment = parseInt(schoolObj.Enrollment);	
+
+						if (crosswalkItem !== undefined) {
+							var stdID = crosswalkItem["SchoolID"];
+							school.id = stdID;
+
+							var schoolObj = _(schools).find(function(sch) {
+								return sch["sch_code"] == stdID;
+							});	
+						} else {
+							console.log("undefined", school);
 						}
+						
+						if (schoolObj !== undefined) {
+							school.lat = parseFloat(schoolObj["Y"]);
+							school.long = parseFloat(schoolObj["X"]);
+							school.enrollment = parseInt(schoolObj.Enrollment);
+						}
+
 						allSchools.push(school);
 					});
 
@@ -323,7 +356,7 @@
 						return school.cumulative;
 					}).reverse().each(function(school) {
 						var $schoolEl = $(school.element());
-						// $schoolEl.append("<div class='casesOuter'><div class='casesInner'></div></div>");
+						$schoolEl.append("<div class='casesOuter'><div class='casesInner'></div></div>");
 						$("#schoolList").append( $schoolEl );
 
 						if (school.lat !== undefined && school.long !== undefined) {
