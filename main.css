@@ -267,4 +267,21 @@ header #aboutData #aboutDataInner {
   display: none;
 }
 
+#sortBy {
+  margin-top: 5px;
+}
+#sortBy .sortKey {
+  color: #0063A3;
+}
+#sortBy .sortKey:hover {
+  cursor: pointer;
+  border-bottom: 2px solid #0063A3;
+}
+#sortBy .active {
+  border-bottom: 2px solid #0063A3;
+}
+#sortBy .active:hover {
+  cursor: default;
+}
+
 /*# sourceMappingURL=main.css.map */

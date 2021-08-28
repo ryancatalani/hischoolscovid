@@ -272,3 +272,20 @@ header {
 		display: none;
 	}
 }
+
+#sortBy {
+	margin-top: 5px;
+	.sortKey {
+		color: $blue;
+		&:hover {
+			cursor: pointer;
+			border-bottom: 2px solid $blue;
+		}
+	}
+	.active {
+		border-bottom: 2px solid $blue;
+		&:hover {
+			cursor: default;
+		}
+	}
+}

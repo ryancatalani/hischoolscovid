@@ -50,7 +50,9 @@
 					<input type="text" name="filter" id="filterInput">
 					<span id="filterClear"><i class="fas fa-times-circle"></i></span>
 				</span>
-
+			</div>
+			<div id="sortBy" style="display: none;">
+				Sort by: <span class="sortKey active" data-key="total">Total cases reported</span> • <span class="sortKey" data-key="ratio">Ratio of cases to students</span>
 			</div>
 		</header>
 
@@ -101,12 +103,24 @@
 			}
 			enrollmentText() {
 				var text = "";
-				if (this.enrollment !== undefined && this.enrollment > 0) {
-					var ratio = Math.round((1.0 * this.enrollment) / this.cumulative);
+				if (this.enrollment !== undefined && this.cumulative !== undefined && this.enrollment > 0 && this.cumulative > 0) {
+					var ratio = Math.round(this.caseRatio());
 					text += "About 1 in " + ratio.toLocaleString() + " students ";
 					text += "(SY20-21 enrollment: " + this.enrollment.toLocaleString() + ")";
 				}
 				return text;
+			}
+			caseRatio() {
+				if (this.enrollment !== undefined && this.cumulative !== undefined && this.enrollment > 0 && this.cumulative > 0) {
+					return (1.0 * this.enrollment) / this.cumulative;	
+				}
+				return 0;
+			}
+			invertedRatio() {
+				if (this.enrollment !== undefined && this.cumulative !== undefined && this.enrollment > 0 && this.cumulative > 0) {
+					return (1.0 * this.cumulative) / this.enrollment;
+				}
+				return 0;	
 			}
 			element() {
 				var template = _.template("<div class='school' data-name='<%= safeName %>'><div class='schoolName'><%= name %></div><div class='schoolDesc'>Total cases reported: <%= cumulative %><span class='zoomTo' data-lat='<%= lat %>' data-long='<%= long %>'><i class='fas fa-search-plus'></i> Zoom to this school</span></div><div class='schoolEnrollment'><%= enrollment %></div></div>");
@@ -116,7 +130,7 @@
 					cumulative: this.cumulativeText(),
 					lat: this.lat,
 					long: this.long,
-					enrollment: this.enrollmentText()
+					enrollment: ""
 				});
 			}
 		}
@@ -260,6 +274,25 @@
 				$("#filterInput").val("").trigger("keyup");
 			})
 
+			// Set up sorting
+
+			$(".sortKey").click(function() {
+				if ( $(this).hasClass("active") )
+					return;
+
+				$(".sortKey").removeClass("active");
+				$("#schoolList").empty();
+
+				var key = $(this).data("key");
+				if (key === "total") {
+					displayData({allSchools: allSchools});
+				} else if (key === "ratio") {
+					displayData({allSchools: allSchools, sortKey: "ratio"});
+				}
+
+				$(this).addClass("active");
+			});
+
 			// Set up Zoom
 
 			$("#schoolList").on("click", ".zoomTo", function() {
@@ -276,6 +309,58 @@
 					});
 				}
 			});
+
+			// Set up data display
+
+			function displayData(args) {
+				var allSchools = args.allSchools;
+				var schoolMap = args.schoolMap;
+				var sortKey = args.sortKey;
+
+				_.chain(allSchools).sortBy(function(school) {
+					return school.name;
+				}).reverse().sortBy(function(school) {
+					if (sortKey === "ratio") {
+						return school.invertedRatio();
+					}
+					return school.cumulative;
+				}).reverse().each(function(school) {
+					var $schoolEl = $(school.element());
+					// Enable for case display
+					// $schoolEl.append("<div class='casesOuter'><div class='casesInner'></div></div>");
+					$("#schoolList").append( $schoolEl );
+
+					if (schoolMap !== undefined) {
+						if (school.lat !== undefined && school.long !== undefined) {
+							var icon =  L.divIcon({
+								className: 'marker-icon',
+								html: '<i id="marker' + school.id + '" class="fas fa-map-pin fa-3x"></i>',
+								iconSize: [20,36],
+								iconAnchor: [10,36],
+								popupAnchor: [0,-20]
+							});
+
+							var marker = L.marker([school.lat, school.long]);
+							marker.bindPopup(school.element());
+							// marker.addTo(schoolMap);
+							markers.addLayer(marker);
+
+							school.marker = marker;	
+						}
+
+						schoolMap.addLayer(markers);	
+					}	
+
+					// Enable for case display
+					// _.chain(allCases).filter(function(theCase) {
+					// 	return theCase.school == school.name;
+					// }).each(function(theCase) {
+					// 	$schoolEl.find('.casesInner').append( theCase.element() );
+					// 	$schoolEl.find('.casesInner').css('width', 310 * school.cumulative + 'px');
+					// });
+
+				});
+			}
 
 			// Set up data
 
@@ -312,48 +397,14 @@
 							school.lat = parseFloat(schoolObj.Y);
 							school.long = parseFloat(schoolObj.X);
 							school.enrollment = parseInt(schoolObj.Enrollment);	
+							// school.caseRatio = (1.0 * school.enrollment) / school.cumulative;
 						}
 						allSchools.push(school);
 					});
 
 					// Display data
 
-					_.chain(allSchools).sortBy(function(school) {
-						return school.name;
-					}).reverse().sortBy(function(school) {
-						return school.cumulative;
-					}).reverse().each(function(school) {
-						var $schoolEl = $(school.element());
-						// $schoolEl.append("<div class='casesOuter'><div class='casesInner'></div></div>");
-						$("#schoolList").append( $schoolEl );
-
-						if (school.lat !== undefined && school.long !== undefined) {
-							var icon =  L.divIcon({
-								className: 'marker-icon',
-								html: '<i id="marker' + school.id + '" class="fas fa-map-pin fa-3x"></i>',
-								iconSize: [20,36],
-								iconAnchor: [10,36],
-								popupAnchor: [0,-20]
-							});
-
-							var marker = L.marker([school.lat, school.long]);
-							marker.bindPopup(school.element());
-							// marker.addTo(schoolMap);
-							markers.addLayer(marker);
-
-							school.marker = marker;	
-						}
-
-						schoolMap.addLayer(markers);
-
-						_.chain(allCases).filter(function(theCase) {
-							return theCase.school == school.name;
-						}).each(function(theCase) {
-							$schoolEl.find('.casesInner').append( theCase.element() );
-							$schoolEl.find('.casesInner').css('width', 310 * school.cumulative + 'px');
-						});
-
-					});
+					displayData({allSchools: allSchools, schoolMap: schoolMap});
 
 					// Color markers
 
