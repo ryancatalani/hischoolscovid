@@ -223,7 +223,7 @@
 		    var plur = datapoint.value === 1 ? "" : "s";
 
 		    tooltip.hidden = false;
-		    tooltip.textContent = `${date}: ${datapoint.value} case${plur} reported`;
+		    tooltip.textContent = `${date}: At least ${datapoint.value} total case${plur} reported`;
 		    tooltip.style.top = `${event.offsetY - 23}px`;
 		    tooltip.style.left = `${event.offsetX + 20}px`;
 		  },
@@ -435,8 +435,17 @@
 							if (caseCount === undefined) {
 								caseCount = 0;
 							}
-							return {date: dateStr, value: caseCount};
+							return {date: dateStr, dailyValue: caseCount, value: 1};
 						});
+						// var cumulative = [0];
+						_.chain(sparklineData)
+							.map(function(d) { return d.dailyValue })
+							.reduce(function(a,b,i){ 
+								// return cumulative[i] = a+b;
+								return sparklineData[i].value = a+b;
+							});
+						console.log(sparklineData);
+
 						// var sparklineValues = _(sparklineData).map(function(d) {return d.value });
 
 						var sparklineID = createSafeName("sparkline" + school.name);
