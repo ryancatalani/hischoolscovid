@@ -224,14 +224,13 @@
 
 		    tooltip.hidden = false;
 		    tooltip.textContent = `${date}: ${datapoint.value} case${plur} reported`;
-		    tooltip.style.top = `${event.offsetY}px`;
+		    tooltip.style.top = `${event.offsetY - 23}px`;
 		    tooltip.style.left = `${event.offsetX + 20}px`;
 		  },
 
 		  onmouseout() {
 		    var svg = findClosest(event.target, "svg");
 		    var tooltip = svg.nextElementSibling;
-
 		    tooltip.hidden = true;
 		  }
 		};
