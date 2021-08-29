@@ -51,7 +51,7 @@
 					<span id="filterClear"><i class="fas fa-times-circle"></i></span>
 				</span>
 			</div>
-			<div id="sortBy" style="display: none;">
+			<div id="sortBy">
 				Sort by: <span class="sortKey active" data-key="total">Total cases reported</span> • <span class="sortKey" data-key="ratio">Ratio of cases to students</span>
 			</div>
 		</header>
@@ -105,8 +105,8 @@
 				var text = "";
 				if (this.enrollment !== undefined && this.cumulative !== undefined && this.enrollment > 0 && this.cumulative > 0) {
 					var ratio = Math.round(this.caseRatio());
-					text += "About 1 in " + ratio.toLocaleString() + " students ";
-					text += "(SY20-21 enrollment: " + this.enrollment.toLocaleString() + ")";
+					text += "About 1 case for every " + ratio.toLocaleString() + " students. ";
+					text += "<em>(SY20-21 enrollment: " + this.enrollment.toLocaleString() + ". Note that not all cases are from students.)<em>";
 				}
 				return text;
 			}
@@ -130,7 +130,7 @@
 					cumulative: this.cumulativeText(),
 					lat: this.lat,
 					long: this.long,
-					enrollment: ""
+					enrollment: this.enrollmentText()
 				});
 			}
 		}
@@ -147,8 +147,10 @@
 			sourceText() {
 				if (this.publicSubmission) {
 					return "Public submission";
+				} else if (this.reportingPeriod !== undefined && this.reportingPeriod !== "") {
+					return "DOE data • Reporting period: " + this.reportingPeriod;	
 				}
-				return "DOE data • Reporting period: " + this.reportingPeriod;
+				return "DOE data";
 			}
 			classText() {
 				var c = "case";
@@ -327,7 +329,7 @@
 				}).reverse().each(function(school) {
 					var $schoolEl = $(school.element());
 					// Enable for case display
-					// $schoolEl.append("<div class='casesOuter'><div class='casesInner'></div></div>");
+					$schoolEl.append("<div class='casesLabel'><strong>Individual cases</strong> <em>(Note: DOE data does not list every individual case)</em></div><div class='casesOuter'><div class='casesInner'></div></div>");
 					$("#schoolList").append( $schoolEl );
 
 					if (schoolMap !== undefined) {
@@ -352,19 +354,20 @@
 					}	
 
 					// Enable for case display
-					// _.chain(allCases).filter(function(theCase) {
-					// 	return theCase.school == school.name;
-					// }).each(function(theCase) {
-					// 	$schoolEl.find('.casesInner').append( theCase.element() );
-					// 	$schoolEl.find('.casesInner').css('width', 310 * school.cumulative + 'px');
-					// });
+					_.chain(allCases).filter(function(theCase) {
+						return theCase.school == school.name;
+					}).each(function(theCase) {
+						$schoolEl.find('.casesInner').append( theCase.element() );
+						$schoolEl.find('.casesInner').css('width', 310 * school.cumulative + 'px');
+					});
 
 				});
 			}
 
 			// Set up data
 
-			var dataURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYH-1yDrq_TA7k3IUYy0J7SVbSRO850SmeUjXVOo0K7PSPqdBXAsjgO4sjmpFLZ3vamRmUBZMWg2Iy/pub?gid=1726552848&single=true&output=csv";
+			var totalsURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYH-1yDrq_TA7k3IUYy0J7SVbSRO850SmeUjXVOo0K7PSPqdBXAsjgO4sjmpFLZ3vamRmUBZMWg2Iy/pub?gid=1726552848&single=true&output=csv";
+			var casesURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYH-1yDrq_TA7k3IUYy0J7SVbSRO850SmeUjXVOo0K7PSPqdBXAsjgO4sjmpFLZ3vamRmUBZMWg2Iy/pub?output=csv";
 			var schoolsURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYH-1yDrq_TA7k3IUYy0J7SVbSRO850SmeUjXVOo0K7PSPqdBXAsjgO4sjmpFLZ3vamRmUBZMWg2Iy/pub?gid=1271858449&single=true&output=csv";
 			var crosswalkURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYH-1yDrq_TA7k3IUYy0J7SVbSRO850SmeUjXVOo0K7PSPqdBXAsjgO4sjmpFLZ3vamRmUBZMWg2Iy/pub?gid=280592408&single=true&output=csv";
 
@@ -380,12 +383,12 @@
 				return d.promise();
 			}
 
-			$.when( pparse(dataURL), pparse(schoolsURL), pparse(crosswalkURL) )
-				.done(function(caseData, schools, crosswalk) {
+			$.when( pparse(totalsURL), pparse(schoolsURL), pparse(crosswalkURL), pparse(casesURL) )
+				.done(function(totalsData, schools, crosswalk, casesData) {
 
 					// Parse data
 
-					_(caseData).each(function(row) {
+					_(totalsData).each(function(row) {
 						var school = new School({
 							name: row.Name,
 							cumulative: parseInt(row.Cases)
@@ -397,10 +400,32 @@
 							school.lat = parseFloat(schoolObj.Y);
 							school.long = parseFloat(schoolObj.X);
 							school.enrollment = parseInt(schoolObj.Enrollment);	
-							// school.caseRatio = (1.0 * school.enrollment) / school.cumulative;
 						}
 						allSchools.push(school);
 					});
+
+					_(casesData).each(function(row) {
+						var theCase = new Case({
+							school: row["School"],
+							dateReported: row["Date case reported"],
+							reportingPeriod: row["Reporting period"],
+							status: row["Case Status"],
+							publicSubmission: row["Public Submission"] == "TRUE"
+						});
+						if (row["Last date on campus"] !== "Null") {
+							theCase.lastDateOnCampus = row["Last date on campus"];
+						} else {
+							theCase.lastDateOnCampus = "Unspecified";
+						}
+						if (row.Source !== undefined && row.Source !== "") {
+							theCase.source = row.Source;
+						} else {
+							theCase.source = "https://public.tableau.com/app/profile/hidoe.dga/viz/COVID-19HIDOECaseCountPublicDashboard/List";
+						}
+
+						allCases.push(theCase);
+					});
+
 
 					// Display data
 
@@ -413,16 +438,6 @@
 					});
 					var minCaseCount = caseCounts[0];
 					var maxCaseCount = caseCounts[caseCounts.length-1];
-
-					// _(allSchools).each(function(school) {
-					// 	if (school.marker !== undefined) {
-					// 		var val = (1.0 * school.cumulative - minCaseCount) / (maxCaseCount - minCaseCount);
-					// 		var color = d3.interpolatePlasma(val);
-					// 		var markerID = "#marker" + school.id;
-					// 		console.log(school.name, val, markerID);
-					// 		$(markerID).css('color', color);
-					// 	}
-					// });
 
 					// Heatmap
 					

@@ -75,7 +75,7 @@ h1 {
 }
 
 header {
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
 header strong {
   font-weight: bold;
@@ -191,8 +191,24 @@ header #aboutData #aboutDataInner {
   font-size: 0.8em;
   line-height: 1em;
 }
-.school .casesOuter {
+.school .schoolEnrollment em {
+  font-style: italic;
+  color: #666;
+}
+.school .casesLabel {
   margin-top: 20px;
+}
+.school .casesLabel strong {
+  font-weight: bold;
+}
+.school .casesLabel em {
+  font-style: italic;
+  color: #666;
+  font-size: 0.8em;
+  line-height: 1em;
+}
+.school .casesOuter {
+  margin-top: 10px;
   width: 100%;
   overflow-y: scroll;
   background: #F0F0F0;
