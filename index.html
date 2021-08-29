@@ -77,6 +77,7 @@
 	<script src="https://kit.fontawesome.com/34652e81df.js" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js" integrity="sha512-KhIBJeCI4oTEeqOmRi2gDJ7m+JARImhUYgXWiOTIp9qqySpFUAJs09erGKem4E5IPuxxSTjavuurvBitBmwE0w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 	<script type="text/javascript" src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+	<script type="text/javascript" src="/sparkline.js"></script>
 	<script type="text/javascript">
 		class School {
 			constructor(args) {
@@ -172,16 +173,69 @@
 			}
 		}
 
+		// Globals
+
 		var allSchools = [];
 		var allCases = [];
+		var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+		// Helpers
 
 		function createSafeName(input) {
 			return input.replace(/[^a-zA-Z]/gi, "").toLocaleUpperCase();
 		}
 
-		$("#aboutDataHeader").click(function() {
-			$("#aboutDataInner").slideToggle("fast");
-		});
+		Date.prototype.addDays = function(days) {
+		    var date = new Date(this.valueOf());
+		    date.setDate(date.getDate() + days);
+		    return date;
+		}
+
+		function getDates(startDate, stopDate) {
+		    var dateArray = new Array();
+		    var currentDate = startDate;
+		    while (currentDate <= stopDate) {
+		        dateArray.push(new Date (currentDate));
+		        currentDate = currentDate.addDays(1);
+		    }
+		    return dateArray;
+		}
+
+		function findClosest(target, tagName) {
+		  if (target.tagName === tagName) {
+		    return target;
+		  }
+
+		  while ((target = target.parentNode)) {
+		    if (target.tagName === tagName) {
+		      break;
+		    }
+		  }
+
+		  return target;
+		}
+
+		var sparklineOptions = {
+		  onmousemove(event, datapoint) {
+		    var svg = findClosest(event.target, "svg");
+		    var tooltip = svg.nextElementSibling;
+		    var date = datapoint.date;
+		    var plur = datapoint.value === 1 ? "" : "s";
+
+		    tooltip.hidden = false;
+		    tooltip.textContent = `${date}: ${datapoint.value} case${plur} reported`;
+		    tooltip.style.top = `${event.offsetY}px`;
+		    tooltip.style.left = `${event.offsetX + 20}px`;
+		  },
+
+		  onmouseout() {
+		    var svg = findClosest(event.target, "svg");
+		    var tooltip = svg.nextElementSibling;
+
+		    tooltip.hidden = true;
+		  }
+		};
+
 
 		$(function() {
 
@@ -222,6 +276,12 @@
 
 			markers.on('clusterclick', function (a) {
 				a.layer.zoomToBounds({padding: [20, 20]});
+			});
+
+			// Set up about data header
+
+			$("#aboutDataHeader").click(function() {
+				$("#aboutDataInner").slideToggle("fast");
 			});
 
 			// Set up filter
@@ -354,12 +414,38 @@
 					}	
 
 					// Enable for case display
-					_.chain(allCases).filter(function(theCase) {
+					var sorted = _.chain(allCases).filter(function(theCase) {
 						return theCase.school == school.name;
 					}).each(function(theCase) {
 						$schoolEl.find('.casesInner').append( theCase.element() );
 						$schoolEl.find('.casesInner').css('width', 310 * school.cumulative + 'px');
-					});
+					}).sort(function(theCase) {
+						return new Date(theCase.dateReported);
+					}).reverse().value();
+
+					if (sorted.length > 0) {
+						// Sparkline
+						var caseMinDate = new Date(sorted[0].dateReported);
+						var caseMaxDate = new Date(sorted[sorted.length - 1].dateReported);
+						var dateRange = getDates(caseMinDate, caseMaxDate);
+						var casesByDate = _(sorted).countBy(function(c) { return c.dateReported });
+						
+						var sparklineData = _(dateRange).map(function(d) {
+							var dateStr = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
+							var caseCount = casesByDate[dateStr];
+							if (caseCount === undefined) {
+								caseCount = 0;
+							}
+							return {date: dateStr, value: caseCount};
+						});
+						// var sparklineValues = _(sparklineData).map(function(d) {return d.value });
+
+						var sparklineID = createSafeName("sparkline" + school.name);
+						var $sparkline = $("<svg id='" + sparklineID + "' class='sparkline' width='80' height='16' stroke-width='2'></svg><span class='tooltip' hidden='true'></span>");
+						$sparkline.insertBefore( $schoolEl.find(".zoomTo") );
+
+						sparkline.sparkline(document.querySelector("#"+sparklineID), sparklineData, sparklineOptions);
+					}
 
 				});
 			}

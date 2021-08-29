@@ -185,6 +185,7 @@ header #aboutData #aboutDataInner {
 }
 .school .schoolDesc {
   font-weight: bold;
+  position: relative;
 }
 .school .schoolEnrollment {
   margin-top: 10px;
@@ -272,11 +273,19 @@ header #aboutData #aboutDataInner {
 .zoomTo {
   font-weight: normal;
   color: #0063A3;
-  margin-left: 20px;
+  margin-top: 5px;
+  display: block;
 }
 .zoomTo:hover {
   cursor: pointer;
   text-decoration: underline;
+}
+@media (min-width: 800px) {
+  .zoomTo {
+    display: inline;
+    margin-top: 0;
+    margin-left: 20px;
+  }
 }
 
 .leaflet-popup-content .zoomTo {
@@ -298,6 +307,35 @@ header #aboutData #aboutDataInner {
 }
 #sortBy .active:hover {
   cursor: default;
+}
+
+.sparkline {
+  margin-left: 5px;
+  stroke: #666;
+  fill: none;
+}
+
+*[hidden] {
+  display: none;
+}
+
+.tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 2px 5px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 9999;
+}
+
+.sparkline--cursor {
+  stroke: #0063A3;
+}
+
+.sparkline--spot {
+  fill: #0063A3;
+  stroke: #0063A3;
 }
 
 /*# sourceMappingURL=main.css.map */
