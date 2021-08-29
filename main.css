@@ -303,10 +303,12 @@ header #aboutData #aboutDataInner {
   border-bottom: 2px solid #0063A3;
 }
 #sortBy .active {
-  border-bottom: 2px solid #0063A3;
+  color: #000;
+  border-bottom: 2px solid #000;
 }
 #sortBy .active:hover {
   cursor: default;
+  border-bottom: 2px solid #000;
 }
 
 .sparkline {
