@@ -145,6 +145,7 @@
 				this.source = args.source;
 				this.status = args.status;
 				this.publicSubmission = args.publicSubmission;
+				this.count = args.count;
 			}
 			sourceText() {
 				if (this.publicSubmission) {
@@ -161,9 +162,16 @@
 				}
 				return c;
 			}
+			caseText() {
+				if (this.count > 1) {
+					return "Cases (" + this.count + ")";
+				}
+				return "Case";
+			}
 			element() {
-				var template = _.template("<div class='<%= classText %>'><p><strong>Case <%= status %></strong></p><p>Date reported: <%= dateReported %></p><p>Last date individual was on campus: <%= lastDateOnCampus %></p><p>Source: <%= sourceText %></p><a href='<%= source %>' target='_blank'>View source</a>");
+				var template = _.template("<div class='<%= classText %>'><p><strong><%= caseText %> <%= status %></strong></p><p>Date reported: <%= dateReported %></p><p>Last date individual was on campus: <%= lastDateOnCampus %></p><p>Source: <%= sourceText %></p><a href='<%= source %>' target='_blank'>View source</a>");
 				return template({
+					caseText: this.caseText(),
 					classText: this.classText(),
 					dateReported: this.dateReported,
 					lastDateOnCampus: this.lastDateOnCampus,
@@ -428,7 +436,13 @@
 						var caseMinDate = new Date(sorted[0].dateReported);
 						var caseMaxDate = new Date(sorted[sorted.length - 1].dateReported);
 						var dateRange = getDates(caseMinDate, caseMaxDate);
-						var casesByDate = _(sorted).countBy(function(c) { return c.dateReported });
+						var casesByDate = _.chain(sorted)
+							.groupBy(function(c) { return c.dateReported })
+							.mapObject(function(value) {
+								var sum = _(value).reduce(function(memo, num) { return memo + num.count}, 0);
+								return sum;
+							})
+							.value();
 						
 						var sparklineData = _(dateRange).map(function(d) {
 							var dateStr = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
@@ -505,7 +519,8 @@
 							dateReported: row["Date case reported"],
 							reportingPeriod: row["Reporting period"],
 							status: row["Case Status"],
-							publicSubmission: row["Public Submission"] == "TRUE"
+							publicSubmission: row["Public Submission"] == "TRUE",
+							count: parseInt(row.Count)
 						});
 						if (row["Last date on campus"] !== "Null") {
 							theCase.lastDateOnCampus = row["Last date on campus"];
