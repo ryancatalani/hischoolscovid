@@ -27,8 +27,10 @@
 </head>
 <body>
 
+	<div id="schoolMapWrap">
+		<div id="schoolMap"></div>
+	</div>
 
-	<div id="schoolMap"></div>
 	<div id="mainContent">
 		<header>
 			<h1>Hawaiʻi Public Schools: Reported COVID-19 Cases</h1>
@@ -612,11 +614,31 @@
 					var minCaseCount = complexAreaCounts[0];
 					var maxCaseCount = complexAreaCounts[complexAreaCounts.length-1];
 
+					var colorRange = ["#fecc5c","#fd8d3c","#f03b20","#bd0026"];
+					// var colorRange = ["#faa476","#f0746e","#dc3977","#b9257a"];
 					var scale = d3.scaleQuantile()
 						.domain([minCaseCount, maxCaseCount])
-						.range(["#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"]);
+						.range(colorRange);
+					
+					var colorLegend = "<div id='legend'><strong>Cases in complex area</strong><ul>";
 					var quantiles = scale.quantiles();
-					console.log(quantiles);
+					for (var i = 0; i < colorRange.length; i++) {
+						var color = colorRange[i];
+						var lowerBound = quantiles[i-1];
+						if (lowerBound === undefined) {
+							lowerBound = minCaseCount;
+						}
+						var upperBound = quantiles[i];
+						if (upperBound === undefined) {
+							upperBound = maxCaseCount;
+						}
+						colorLegend += `<li>
+							<span class='legendColor' style='background-color:${color}'></span>
+							${Math.ceil(lowerBound)}-${Math.floor(upperBound)}
+						</li>`;
+					}
+					$("#schoolMapWrap").append(colorLegend);
+
 
 					_(allComplexAreas).each(function(complex) {
 						if (complex.caseTotal > 0) {
@@ -625,7 +647,8 @@
 								style: {
 									"color": color,
 									"weight": 1,
-									"opacity": 0.3
+									"opacity": 0.9,
+									"fillOpacity": 0.5
 								}
 							}).addTo(schoolMap);
 						}
