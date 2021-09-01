@@ -69,14 +69,15 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" referrerpolicy="no-referrer"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.1/papaparse.min.js" integrity="sha512-EbdJQSugx0nVWrtyK3JdQQ/03mS3Q1UiAhRtErbwl1YL/+e2hZdlIcSURxxh7WXHTzn83sjlh2rysACoJGfb6g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.1/underscore-min.js" referrerpolicy="no-referrer"></script>
-	<script src="https://d3js.org/d3-color.v1.min.js"></script>
-	<script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
-	<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/d3-array@3"></script>
+	<script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
+	<script src="https://cdn.jsdelivr.net/npm/d3-format@3"></script>
+	<script src="https://cdn.jsdelivr.net/npm/d3-interpolate@3"></script>
+	<script src="https://cdn.jsdelivr.net/npm/d3-scale@4"></script>
 	<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
 	  integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
 	  crossorigin=""></script>
 	<script src="https://kit.fontawesome.com/34652e81df.js" crossorigin="anonymous"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js" integrity="sha512-KhIBJeCI4oTEeqOmRi2gDJ7m+JARImhUYgXWiOTIp9qqySpFUAJs09erGKem4E5IPuxxSTjavuurvBitBmwE0w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 	<script type="text/javascript" src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 	<script type="text/javascript" src="/sparkline.js"></script>
 	<script type="text/javascript">
@@ -106,8 +107,8 @@
 			enrollmentText() {
 				var text = "";
 				if (this.enrollment !== undefined && this.cumulative !== undefined && this.enrollment > 0 && this.cumulative > 0) {
-					var ratio = Math.round(this.caseRatio());
-					text += "About 1 case for every " + ratio.toLocaleString() + " students. ";
+					// var ratio = Math.round(this.caseRatio());
+					// text += "About 1 case for every " + ratio.toLocaleString() + " students. ";
 					text += "<em>(SY20-21 enrollment: " + this.enrollment.toLocaleString() + ". Note that not all cases are from students.)<em>";
 				}
 				return text;
@@ -124,16 +125,35 @@
 				}
 				return 0;	
 			}
-			element() {
-				var template = _.template("<div class='school' data-name='<%= safeName %>'><div class='schoolName'><%= name %></div><div class='schoolDesc'>Total cases reported: <%= cumulative %><span class='zoomTo' data-lat='<%= lat %>' data-long='<%= long %>'><i class='fas fa-search-plus'></i> Zoom to this school</span></div><div class='schoolEnrollment'><%= enrollment %></div></div>");
-				return template({
-					name: this.name, 
-					safeName: this.safeName(),
-					cumulative: this.cumulativeText(),
-					lat: this.lat,
-					long: this.long,
-					enrollment: this.enrollmentText()
-				});
+			element(useID) {
+				var id = useID === true ? this.safeName() : "";
+				var template = `<div class='school' data-name='${this.safeName()}' id='${id}'>
+					<div class='schoolName'>
+						${this.name}
+						<span class='zoomTo' data-lat='${this.lat}' data-long='${this.long}'><i class='fas fa-search-plus'></i> Zoom to this school</span>
+					</div>
+					<div class='schoolStats'>
+							<div class='statLabel'>Total cases reported</div>
+							<div class='statLabel'>Ratio of cases to students</div>
+							<div class='statLabel trendLabel'>Trend</div>
+							<div class='statValue'>${this.cumulativeText()}</div>
+							<div class='statValue'>1:${Math.round(this.caseRatio()).toLocaleString()}</div>
+							<div class='trend'></div>
+					</div>
+					<div class='schoolEnrollment'>${this.enrollmentText()}</div>
+				</div>`;
+				return template;
+
+
+				// var template = _.template("<div class='school' data-name='<%= safeName %>'><div class='schoolName'><%= name %></div><div class='schoolDesc'>Total cases reported: <%= cumulative %><span class='zoomTo' data-lat='<%= lat %>' data-long='<%= long %>'><i class='fas fa-search-plus'></i> Zoom to this school</span></div><div class='schoolEnrollment'><%= enrollment %></div></div>");
+				// return template({
+				// 	name: this.name, 
+				// 	safeName: this.safeName(),
+				// 	cumulative: this.cumulativeText(),
+				// 	lat: this.lat,
+				// 	long: this.long,
+				// 	enrollment: this.enrollmentText()
+				// });
 			}
 		}
 		class Case {
@@ -181,11 +201,19 @@
 				});
 			}
 		}
+		class ComplexArea {
+			constructor(args) {
+				this.name = args.name,
+				this.geoJSON = args.geoJSON,
+				this.caseTotal = args.caseTotal
+			}
+		}
 
 		// Globals
 
 		var allSchools = [];
 		var allCases = [];
+		var allComplexAreas = [];
 		var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 		// Helpers
@@ -292,6 +320,13 @@
 				$("#aboutDataInner").slideToggle("fast");
 			});
 
+			// Set up cases click
+
+			$("#schoolList").on("click", ".casesLabel", function() {
+				$(this).next().slideToggle("fast");
+				$(this).toggleClass("active");
+			});
+
 			// Set up filter
 
 			var runFilter = _.debounce(function() {
@@ -395,9 +430,9 @@
 					}
 					return school.cumulative;
 				}).reverse().each(function(school) {
-					var $schoolEl = $(school.element());
+					var $schoolEl = $(school.element(true));
 					// Enable for case display
-					$schoolEl.append("<div class='casesLabel'><strong>Individual cases</strong> <em>(Note that DOE data may not list every individual case.)</em></div><div class='casesOuter'><div class='casesInner'></div></div>");
+					$schoolEl.append("<div class='casesLabel'><i class='fas fa-list'></i> <strong>View individual cases</strong> <em>(Note that DOE data may not list every individual case.)</em></div><div class='casesOuter'><div class='casesInner'></div></div>");
 					$("#schoolList").append( $schoolEl );
 
 					if (schoolMap !== undefined) {
@@ -411,8 +446,7 @@
 							});
 
 							var marker = L.marker([school.lat, school.long]);
-							marker.bindPopup(school.element());
-							// marker.addTo(schoolMap);
+							marker.bindPopup(school.element(false));
 							markers.addLayer(marker);
 
 							school.marker = marker;	
@@ -462,11 +496,12 @@
 
 						// var sparklineValues = _(sparklineData).map(function(d) {return d.value });
 
-						var sparklineID = createSafeName("sparkline" + school.name);
-						var $sparkline = $("<svg id='" + sparklineID + "' class='sparkline' width='80' height='16' stroke-width='2'></svg><span class='tooltip' hidden='true'></span>");
-						$sparkline.insertBefore( $schoolEl.find(".zoomTo") );
+						var sparklineID = `#${createSafeName(school.name)} .trend`;
+						var sparklineWidth = Math.max(80, Math.min(100, Math.floor( $(window).width() / 6 )));
+						var $sparkline = $(`<svg class='sparkline' width='${sparklineWidth}' height='26' stroke-width='2'></svg><span class='tooltip' hidden='true'></span>`);
+						$(sparklineID).append($sparkline);
 
-						sparkline.sparkline(document.querySelector("#"+sparklineID), sparklineData, sparklineOptions);
+						sparkline.sparkline(document.querySelector(sparklineID + " svg"), sparklineData, sparklineOptions);
 					}
 
 				});
@@ -478,6 +513,7 @@
 			var casesURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYH-1yDrq_TA7k3IUYy0J7SVbSRO850SmeUjXVOo0K7PSPqdBXAsjgO4sjmpFLZ3vamRmUBZMWg2Iy/pub?output=csv";
 			var schoolsURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYH-1yDrq_TA7k3IUYy0J7SVbSRO850SmeUjXVOo0K7PSPqdBXAsjgO4sjmpFLZ3vamRmUBZMWg2Iy/pub?gid=1271858449&single=true&output=csv";
 			var crosswalkURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYH-1yDrq_TA7k3IUYy0J7SVbSRO850SmeUjXVOo0K7PSPqdBXAsjgO4sjmpFLZ3vamRmUBZMWg2Iy/pub?gid=280592408&single=true&output=csv";
+			var complexAreasURL = "/School_Complex_Areas.geojson"
 
 			function pparse(url) {
 				var d = $.Deferred();
@@ -490,9 +526,27 @@
 				});
 				return d.promise();
 			}
+			function getGeoJSON(url) {
+				var d = $.Deferred();
+				$.getJSON(url, function(data){
+					d.resolve(data);
+				});
+				return d.promise();
+			}
 
-			$.when( pparse(totalsURL), pparse(schoolsURL), pparse(crosswalkURL), pparse(casesURL) )
-				.done(function(totalsData, schools, crosswalk, casesData) {
+			$.when( pparse(totalsURL), pparse(schoolsURL), pparse(crosswalkURL), pparse(casesURL), getGeoJSON(complexAreasURL) )
+				.done(function(totalsData, schools, crosswalk, casesData, complexAreas) {
+
+					// Parse complex areas
+
+					_(complexAreas.features).map(function(row) {
+						var complex = new ComplexArea({
+							name: row.properties.complex_area,
+							geoJSON: row,
+							caseTotal: 0
+						});
+						allComplexAreas.push(complex);
+					});
 
 					// Parse data
 
@@ -531,39 +585,51 @@
 						} else {
 							theCase.source = "https://public.tableau.com/app/profile/hidoe.dga/viz/COVID-19HIDOECaseCountPublicDashboard/List";
 						}
+						if (row.Complex !== undefined && row.Complex !== "") {
+							var complex = _(allComplexAreas).find(function(c) {
+								return c.name === row.Complex.toLocaleUpperCase()
+							});
+							if (complex !== undefined) {
+								complex.caseTotal += theCase.count;
+							}
+						}
 
 						allCases.push(theCase);
 					});
-
 
 					// Display data
 
 					displayData({allSchools: allSchools, schoolMap: schoolMap});
 
-					// Color markers
-
-					var caseCounts = _(allSchools).map(function(school) { return parseInt(school.cumulative) }).sort(function(a, b) {
+					// Display complex areas
+					var complexAreaCounts = _.chain(allComplexAreas).map(function(complex) {
+						return complex.caseTotal;
+					}).filter(function(num) {
+						return num > 0;
+					}).value().sort(function(a,b) {
 						return a-b;
 					});
-					var minCaseCount = caseCounts[0];
-					var maxCaseCount = caseCounts[caseCounts.length-1];
+					var minCaseCount = complexAreaCounts[0];
+					var maxCaseCount = complexAreaCounts[complexAreaCounts.length-1];
 
-					// Heatmap
-					
-					var heatmapPoints = _.chain(allSchools).filter(function(school) {
-						return school.lat !== undefined && school.long !== undefined;
-					}).map(function(school) {
-						return [school.lat, school.long, school.cumulative];
-					}).value();
-					var heat = L.heatLayer(heatmapPoints, {
-						max: maxCaseCount,
-						maxZoom: 11,
-						gradient: {0.2: '#2c7bb6',
-							0.4: '#abd9e9',
-							0.6: '#ffffbf',
-							0.8: '#fdae61',
-							1: '#d7191c'}
-					}).addTo(schoolMap);
+					var scale = d3.scaleQuantile()
+						.domain([minCaseCount, maxCaseCount])
+						.range(["#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"]);
+					var quantiles = scale.quantiles();
+					console.log(quantiles);
+
+					_(allComplexAreas).each(function(complex) {
+						if (complex.caseTotal > 0) {
+							var color = scale(complex.caseTotal);
+							L.geoJSON(complex.geoJSON, {
+								style: {
+									"color": color,
+									"weight": 1,
+									"opacity": 0.3
+								}
+							}).addTo(schoolMap);
+						}
+					});
 
 					$("#loading").slideUp("fast");
 
