@@ -429,4 +429,8 @@ header #aboutData #aboutDataInner {
   stroke: #0063A3;
 }
 
+.sparkline--fill {
+  fill: #F0F0F0;
+}
+
 /*# sourceMappingURL=main.css.map */
