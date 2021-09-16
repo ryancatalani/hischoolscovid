@@ -311,10 +311,10 @@
 		    var svg = findClosest(event.target, "svg");
 		    var tooltip = svg.nextElementSibling;
 		    var date = datapoint.date;
-		    var plur = datapoint.dailyValue === 1 ? "" : "s";
+		    var plur = datapoint.value === 1 ? "" : "s";
 
 		    tooltip.hidden = false;
-		    tooltip.textContent = `${date}: ${datapoint.dailyValue} case${plur} reported`;
+		    tooltip.textContent = `${date}: ${datapoint.value} case${plur} reported`;
 		    tooltip.style.top = `${event.offsetY - 23}px`;
 		    tooltip.style.left = `${event.offsetX + 20}px`;
 		  },
@@ -513,6 +513,13 @@
 					}	
 
 					// Enable for case display
+					var beforeLastTwoWeeks = _.chain(allCases).filter(function(theCase) {
+						var caseDate = new Date(theCase.dateReported);
+						return (theCase.school == school.name) && ((today-caseDate)/(1000*60*60*24) > 14);
+					}).reduce(function(a, b) {
+						return a + b.count;
+					},0).value();
+
 					var sorted = _.chain(allCases).filter(function(theCase) {
 						// return theCase.school == school.name;
 						var caseDate = new Date(theCase.dateReported);
@@ -526,8 +533,8 @@
 
 					if (sorted.length > 0) {
 						// Sparkline
-						var caseMinDate = new Date(sorted[0].dateReported);
-						var caseMaxDate = new Date(sorted[sorted.length - 1].dateReported);
+						var caseMinDate = new Date(today - (1000*60*60*24*14));
+						var caseMaxDate = today;
 						var dateRange = getDates(caseMinDate, caseMaxDate);
 						var casesByDate = _.chain(sorted)
 							.groupBy(function(c) { return c.dateReported })
@@ -551,7 +558,7 @@
 							.reduce(function(a,b,i){ 
 								// return cumulative[i] = a+b;
 								return sparklineData[i].value = a+b;
-							});
+							}, beforeLastTwoWeeks);
 
 						// var sparklineValues = _(sparklineData).map(function(d) {return d.value });
 
