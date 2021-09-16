@@ -248,9 +248,9 @@ header {
 		font-weight: bold;
 		position: relative;
 	}
-	.schoolEnrollment {
+	.schoolDataNotes {
 		margin-top: 10px;
-		font-size: 0.8em;
+		font-size: 13px;
 		line-height: 1em;
 		em {
 			font-style: italic;
@@ -345,6 +345,18 @@ header {
 		.trendLabel, .trend {
 			display: block;
 		}
+	}
+}
+
+.twoWeekChange {
+	font-size: 13px;
+	line-height: 1em;
+	color: #666;
+	&.up {
+		color: #d6604d;
+	}
+	&.down {
+		color: #4393c3;
 	}
 }
 

@@ -100,6 +100,7 @@
 				this.marker = args.marker;
 				this.id = args.id;
 				this.enrollment = args.enrollment;
+				this.twoWeekChange = args.twoWeekChange;
 			}
 			safeName() {
 				return createSafeName(this.name);
@@ -155,6 +156,20 @@
 				}
 				return 0;
 			}
+			twoWeekChangeText() {
+				if (!isNaN(this.twoWeekChange)) {
+					var pct = this.twoWeekChange * 100;
+
+					if (pct == 0) {
+						return "<span class='twoWeekChange none'>No change</span>";
+					} else if (pct > 0) {
+						return `<span class="twoWeekChange up"><i class="fas fa-arrow-circle-up"></i> ${pct.toLocaleString()}%</span>`
+					} else {
+						return `<span class="twoWeekChange down"><i class="fas fa-arrow-circle-down"></i> ${pct.toLocaleString() * -1}%</span>`
+					}
+				}
+				return "";
+			}
 			element(useID) {
 				var id = useID === true ? this.safeName() : "";
 				var template = `<div class='school' data-name='${this.safeName()}' id='${id}'>
@@ -167,12 +182,15 @@
 							<div class='statLabel trendLabel'>Trend (last 2 weeks)</div>
 							<div class='statLabel'>Ratio of recent cases to students</div>
 							<div class='statLabel'>Total cases reported</div>
-							<div class='statValue'>${this.cumulativeRecentText()}</div>
+							<div class='statValue'>
+								${this.cumulativeRecentText()}
+								${this.twoWeekChangeText()}
+							</div>
 							<div class='trend'></div>
 							<div class='statValue'>${this.recentCaseRatioText()}</div>
 							<div class='statValue'>${this.cumulativeText()}</div>
 					</div>
-					<div class='schoolEnrollment'>${this.enrollmentText()}</div>
+					<div class='schoolDataNotes'>${this.enrollmentText()}</div>
 				</div>`;
 				return template;
 
@@ -596,7 +614,8 @@
 						var school = new School({
 							name: row.Name,
 							cumulative: parseInt(row.Cases),
-							cumulativeRecent: parseInt(row.RecentCases)
+							cumulativeRecent: parseInt(row.RecentCases),
+							twoWeekChange: parseFloat(row.PctChange)
 						});
 						var schoolObj = _(schools).find(function(sch) {
 							return sch.sch_name == school.name;

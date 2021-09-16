@@ -242,12 +242,12 @@ header #aboutData #aboutDataInner {
   font-weight: bold;
   position: relative;
 }
-.school .schoolEnrollment {
+.school .schoolDataNotes {
   margin-top: 10px;
-  font-size: 0.8em;
+  font-size: 13px;
   line-height: 1em;
 }
-.school .schoolEnrollment em {
+.school .schoolDataNotes em {
   font-style: italic;
   color: #666;
 }
@@ -332,6 +332,18 @@ header #aboutData #aboutDataInner {
 }
 #schoolList .schoolStats .trendLabel, #schoolList .schoolStats .trend {
   display: block;
+}
+
+.twoWeekChange {
+  font-size: 13px;
+  line-height: 1em;
+  color: #666;
+}
+.twoWeekChange.up {
+  color: #d6604d;
+}
+.twoWeekChange.down {
+  color: #4393c3;
 }
 
 .clusterIcon {
