@@ -59,7 +59,8 @@
 			</div>
 			<div id="sortBy">
 				Sort by:
-				<span class="sortKey active" data-key="recent">Recent cases (past 14 days)</span>
+				<span class="sortKey active" data-key="recent">Recent cases</span>
+				• <span class="sortKey" data-key="change">Percent change</span>
 				• <span class="sortKey" data-key="ratio">Ratio of recent cases to students</span>
 				• <span class="sortKey" data-key="total">Total cases</span>
 			</div>
@@ -122,7 +123,7 @@
 				if (this.enrollment !== undefined && this.cumulative !== undefined && this.enrollment > 0 && this.cumulative > 0) {
 					// var ratio = Math.round(this.caseRatio());
 					// text += "About 1 case for every " + ratio.toLocaleString() + " students. ";
-					text += "<em>(SY21-22 enrollment: " + this.enrollment.toLocaleString() + ". Note that not all cases are from students.)<em>";
+					text += "SY21-22 enrollment: " + this.enrollment.toLocaleString() + ". Note that not all cases are from students.";
 				}
 				return text;
 			}
@@ -190,7 +191,7 @@
 							<div class='statValue'>${this.recentCaseRatioText()}</div>
 							<div class='statValue'>${this.cumulativeText()}</div>
 					</div>
-					<div class='schoolDataNotes'>${this.enrollmentText()}</div>
+					<div class='schoolDataNotes'>${this.enrollmentText()} Percent change compares cases reported in last two weeks against cases reported in the previous two-week period.</div>
 				</div>`;
 				return template;
 
@@ -442,13 +443,7 @@
 				$("#schoolList").empty();
 
 				var key = $(this).data("key");
-				if (key === "total") {
-					displayData({allSchools: allSchools});
-				} else if (key === "ratio") {
-					displayData({allSchools: allSchools, sortKey: "ratio"});
-				} else if (key === "recent") {
-					displayData({allSchools: allSchools, sortKey: "recent"});
-				}
+				displayData({allSchools: allSchools, sortKey: key});
 
 				$(this).addClass("active");
 			});
@@ -484,12 +479,17 @@
 						return school.recentInvertedRatio();
 					} else if (sortKey === "recent") {
 						return school.cumulativeRecent;
+					} else if (sortKey === "change") {
+						if (isNaN(school.twoWeekChange)) {
+							return 0;
+						}
+ 						return school.twoWeekChange;
 					}
 					return school.cumulative;
 				}).reverse().each(function(school) {
 					var $schoolEl = $(school.element(true));
 					// Enable for case display
-					$schoolEl.append("<div class='casesLabel'><i class='fas fa-list'></i> <strong>View individual cases</strong> <em>(Note that DOE data may not list every individual case.)</em></div><div class='casesOuter'><div class='casesInner'></div></div>");
+					$schoolEl.find(".schoolStats").after("<div class='casesLabel'><i class='fas fa-list'></i> <strong>View individual cases</strong> <em>(Note that DOE data may not list every individual case.)</em></div><div class='casesOuter'><div class='casesInner'></div></div>");
 					$("#schoolList").append( $schoolEl );
 
 					if (schoolMap !== undefined) {

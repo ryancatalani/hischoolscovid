@@ -245,9 +245,7 @@ header #aboutData #aboutDataInner {
 .school .schoolDataNotes {
   margin-top: 10px;
   font-size: 13px;
-  line-height: 1em;
-}
-.school .schoolDataNotes em {
+  line-height: 1.1em;
   font-style: italic;
   color: #666;
 }
