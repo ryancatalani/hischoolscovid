@@ -292,10 +292,10 @@
 		    var svg = findClosest(event.target, "svg");
 		    var tooltip = svg.nextElementSibling;
 		    var date = datapoint.date;
-		    var plur = datapoint.thisDayCases === 1 ? "" : "s";
+		    var plur = datapoint.dailyValue === 1 ? "" : "s";
 
 		    tooltip.hidden = false;
-		    tooltip.textContent = `${date}: ${datapoint.thisDayCases} case${plur} reported`;
+		    tooltip.textContent = `${date}: ${datapoint.dailyValue} case${plur} reported`;
 		    tooltip.style.top = `${event.offsetY - 23}px`;
 		    tooltip.style.left = `${event.offsetX + 20}px`;
 		  },
@@ -532,7 +532,6 @@
 							.map(function(d) { return d.dailyValue })
 							.reduce(function(a,b,i){ 
 								// return cumulative[i] = a+b;
-								sparklineData[i].thisDayCases = b;
 								return sparklineData[i].value = a+b;
 							});
 
