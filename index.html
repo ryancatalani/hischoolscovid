@@ -682,10 +682,9 @@
 					}
 					$("#schoolMapWrap").append(colorLegend);
 
-
 					_(allComplexAreas).each(function(complex) {
 						if (complex.caseTotal > 0) {
-							var color = scale(complex.caseTotal);
+							var color = scale(complex.recentCaseTotal);
 							L.geoJSON(complex.geoJSON, {
 								style: {
 									"color": color,
