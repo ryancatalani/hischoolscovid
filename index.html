@@ -40,13 +40,16 @@
 				<p id="aboutDataHeader"><i class="fas fa-info-circle"></i> <strong>About the data & submit missing data</strong></p>
 				<div id="aboutDataInner">
 					<p>Data updated daily on weekdays.</p>
-					<p>This data is primarily compiled from the <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/COVID-19-Information-Updates.aspx" target="_blank">weekly Department of Education releases</a>, starting from July 24, 2021.</p>
+					<p>This data is primarily compiled from the <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/COVID-19-Information-Updates.aspx" target="_blank">Department of Education data dashboard</a>, starting from July 24, 2021.</p>
 					<p>If you have any data that’s missing, or see something inaccurate, click here to <a href="/submit.html">submit additional data</a>. Public data submissions are indicated in the list below.</p>
 					<p>School enrollment figures are from the 2021-22 school year, <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/2021-22-enrollment-figures-for-public-and-charter-schools.aspx" target="_blank">via the DOE</a>.</p>
 					<p><a href="https://unofficialhidoecoviddashboard.hawaiicoder.com/" target="_blank">Click here</a> to see another community-drive visualization with this data by John Johnson.</p>
 				</div>
 			</div>
 
+			<div id="grandTotal">
+				<strong>Total cases reported at all schools:</strong> <span id="grandTotalText">Loading…</span>
+			</div>
 			<div id="filter">
 				<label for="filterInput">Filter by school name:</label>
 				<span id="filterInputWrap">
@@ -695,6 +698,10 @@
 							}).addTo(schoolMap);
 						}
 					});
+
+					// Calculate grand total
+					var grandTotal = _(allCases).reduce(function(a, b) { return a + b.count}, 0);
+					$("#grandTotalText").text(grandTotal.toLocaleString());
 
 					$("#loading").slideUp("fast");
 
