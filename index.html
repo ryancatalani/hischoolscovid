@@ -101,6 +101,7 @@
 				this.marker = args.marker;
 				this.id = args.id;
 				this.enrollment = args.enrollment;
+				this.prevTwoWeeks = args.prevTwoWeeks;
 				this.twoWeekChange = args.twoWeekChange;
 			}
 			safeName() {
@@ -191,7 +192,7 @@
 							<div class='statValue'>${this.recentCaseRatioText()}</div>
 							<div class='statValue'>${this.cumulativeText()}</div>
 					</div>
-					<div class='schoolDataNotes'>${this.enrollmentText()} Percent change compares cases reported in last two weeks against cases reported in the previous two-week period.</div>
+					<div class='schoolDataNotes'>${this.enrollmentText()} Percent change compares cases reported in last two weeks (${this.cumulativeRecent}) against cases reported in the previous two-week period (${this.prevTwoWeeks}).</div>
 				</div>`;
 				return template;
 
@@ -622,7 +623,8 @@
 							name: row.Name,
 							cumulative: parseInt(row.Cases),
 							cumulativeRecent: parseInt(row.RecentCases),
-							twoWeekChange: parseFloat(row.PctChange)
+							prevTwoWeeks: parseInt(row.PrevTwoWeeks),
+							twoWeekChange: parseFloat(row.PctChange),
 						});
 						var schoolObj = _(schools).find(function(sch) {
 							return sch.sch_name == school.name;
