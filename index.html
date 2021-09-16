@@ -55,7 +55,10 @@
 				</span>
 			</div>
 			<div id="sortBy">
-				Sort by: <span class="sortKey active" data-key="total">Total cases reported</span> • <span class="sortKey" data-key="ratio">Ratio of cases to students</span>
+				Sort by:
+				<span class="sortKey active" data-key="recent">Recent cases (past 14 days)</span>
+				• <span class="sortKey" data-key="ratio">Ratio of recent cases to students</span>
+				• <span class="sortKey" data-key="total">Total cases</span>
 			</div>
 		</header>
 
@@ -90,6 +93,7 @@
 				this.long = args.long;
 				this.cumulative = args.cumulative;
 				this.cumulativePublic = args.cumulativePublic;
+				this.cumulativeRecent = args.cumulativeRecent;
 				this.marker = args.marker;
 				this.id = args.id;
 				this.enrollment = args.enrollment;
@@ -106,6 +110,9 @@
 				}
 				return text;
 			}
+			cumulativeRecentText() {
+				return this.cumulativeRecent;
+			}
 			enrollmentText() {
 				var text = "";
 				if (this.enrollment !== undefined && this.cumulative !== undefined && this.enrollment > 0 && this.cumulative > 0) {
@@ -121,11 +128,29 @@
 				}
 				return 0;
 			}
+			recentCaseRatio() {
+				if (this.enrollment !== undefined && this.cumulativeRecent !== undefined && this.enrollment > 0 && this.cumulativeRecent > 0) {
+					return (1.0 * this.enrollment) / this.cumulativeRecent;	
+				}
+				return 0;	
+			}
+			recentCaseRatioText() {
+				if (this.recentCaseRatio() > 0) {
+					return "1:" + Math.round(this.recentCaseRatio()).toLocaleString();
+				}
+				return "N/A";
+			}
 			invertedRatio() {
 				if (this.enrollment !== undefined && this.cumulative !== undefined && this.enrollment > 0 && this.cumulative > 0) {
 					return (1.0 * this.cumulative) / this.enrollment;
 				}
 				return 0;	
+			}
+			recentInvertedRatio() {
+				if (this.recentCaseRatio() > 0) {
+					return 1.0 / this.recentCaseRatio();
+				}
+				return 0;
 			}
 			element(useID) {
 				var id = useID === true ? this.safeName() : "";
@@ -135,12 +160,14 @@
 						<span class='zoomTo' data-lat='${this.lat}' data-long='${this.long}'><i class='fas fa-search-plus'></i> Zoom to this school</span>
 					</div>
 					<div class='schoolStats'>
+							<div class='statLabel'>Recent cases (last 2 weeks)</div>
+							<div class='statLabel trendLabel'>Trend (last 2 weeks)</div>
+							<div class='statLabel'>Ratio of recent cases to students</div>
 							<div class='statLabel'>Total cases reported</div>
-							<div class='statLabel'>Ratio of cases to students</div>
-							<div class='statLabel trendLabel'>Trend</div>
-							<div class='statValue'>${this.cumulativeText()}</div>
-							<div class='statValue'>1:${Math.round(this.caseRatio()).toLocaleString()}</div>
+							<div class='statValue'>${this.cumulativeRecentText()}</div>
 							<div class='trend'></div>
+							<div class='statValue'>${this.recentCaseRatioText()}</div>
+							<div class='statValue'>${this.cumulativeText()}</div>
 					</div>
 					<div class='schoolEnrollment'>${this.enrollmentText()}</div>
 				</div>`;
@@ -218,6 +245,8 @@
 		var allCases = [];
 		var allComplexAreas = [];
 		var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+		var today = new Date();
+		today.setHours(0,0,0,0);
 
 		// Helpers
 
@@ -263,7 +292,7 @@
 		    var plur = datapoint.value === 1 ? "" : "s";
 
 		    tooltip.hidden = false;
-		    tooltip.textContent = `${date}: At least ${datapoint.value} total case${plur} reported`;
+		    tooltip.textContent = `${date}: ${datapoint.value} case${plur} reported`;
 		    tooltip.style.top = `${event.offsetY - 23}px`;
 		    tooltip.style.left = `${event.offsetX + 20}px`;
 		  },
@@ -396,6 +425,8 @@
 					displayData({allSchools: allSchools});
 				} else if (key === "ratio") {
 					displayData({allSchools: allSchools, sortKey: "ratio"});
+				} else if (key === "recent") {
+					displayData({allSchools: allSchools, sortKey: "recent"});
 				}
 
 				$(this).addClass("active");
@@ -429,7 +460,9 @@
 					return school.name;
 				}).reverse().sortBy(function(school) {
 					if (sortKey === "ratio") {
-						return school.invertedRatio();
+						return school.recentInvertedRatio();
+					} else if (sortKey === "recent") {
+						return school.cumulativeRecent;
 					}
 					return school.cumulative;
 				}).reverse().each(function(school) {
@@ -460,7 +493,9 @@
 
 					// Enable for case display
 					var sorted = _.chain(allCases).filter(function(theCase) {
-						return theCase.school == school.name;
+						// return theCase.school == school.name;
+						var caseDate = new Date(theCase.dateReported);
+						return (theCase.school == school.name) && ((today-caseDate)/(1000*60*60*24) <= 14);
 					}).each(function(theCase) {
 						$schoolEl.find('.casesInner').append( theCase.element() );
 						$schoolEl.find('.casesInner').css('width', 310 * school.cumulative + 'px');
@@ -557,7 +592,8 @@
 					_(totalsData).each(function(row) {
 						var school = new School({
 							name: row.Name,
-							cumulative: parseInt(row.Cases)
+							cumulative: parseInt(row.Cases),
+							cumulativeRecent: parseInt(row.RecentCases)
 						});
 						var schoolObj = _(schools).find(function(sch) {
 							return sch.sch_name == school.name;
@@ -569,9 +605,6 @@
 						}
 						allSchools.push(school);
 					});
-
-					var today = new Date();
-					today.setHours(0,0,0,0);
 
 					_(casesData).each(function(row) {
 						var theCase = new Case({
@@ -610,7 +643,7 @@
 
 					// Display data
 
-					displayData({allSchools: allSchools, schoolMap: schoolMap});
+					displayData({allSchools: allSchools, schoolMap: schoolMap, sortKey: "recent"});
 
 					// Display complex areas
 					var complexAreaCounts = _.chain(allComplexAreas).map(function(complex) {
