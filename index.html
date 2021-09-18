@@ -293,6 +293,41 @@
 		    return dateArray;
 		}
 
+		function groupCasesByDate(args) {
+			var cases = args.cases;
+			var caseMinDate = args.min;
+			var caseMaxDate = args.max;
+			var initialValue = args.initialValue;
+
+			var dateRange = getDates(caseMinDate, caseMaxDate);
+			var casesByDate = _.chain(cases)
+				.groupBy(function(c) { return c.dateReported })
+				.mapObject(function(value) {
+					var sum = _(value).reduce(function(memo, num) { return memo + num.count}, 0);
+					return sum;
+				})
+				.value();
+			
+			var finalData = _(dateRange).map(function(d) {
+				var dateStr = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
+				var caseCount = casesByDate[dateStr];
+				if (caseCount === undefined) {
+					caseCount = 0;
+				}
+				return {date: dateStr, dailyValue: caseCount, value: 1};
+				// value key will be cumulative value
+			});
+
+			_.chain(finalData)
+				.map(function(d) { return d.dailyValue })
+				.reduce(function(a,b,i){ 
+					return finalData[i].value = a+b;
+					// set value key to cumulative value
+				}, initialValue);
+
+			return finalData;
+		}
+
 		function findClosest(target, tagName) {
 		  if (target.tagName === tagName) {
 		    return target;
@@ -534,34 +569,16 @@
 
 					if (sorted.length > 0) {
 						// Sparkline
+
 						var caseMinDate = new Date(today - (1000*60*60*24*14));
 						var caseMaxDate = today;
-						var dateRange = getDates(caseMinDate, caseMaxDate);
-						var casesByDate = _.chain(sorted)
-							.groupBy(function(c) { return c.dateReported })
-							.mapObject(function(value) {
-								var sum = _(value).reduce(function(memo, num) { return memo + num.count}, 0);
-								return sum;
-							})
-							.value();
-						
-						var sparklineData = _(dateRange).map(function(d) {
-							var dateStr = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
-							var caseCount = casesByDate[dateStr];
-							if (caseCount === undefined) {
-								caseCount = 0;
-							}
-							return {date: dateStr, dailyValue: caseCount, value: 1};
-						});
-						// var cumulative = [0];
-						_.chain(sparklineData)
-							.map(function(d) { return d.dailyValue })
-							.reduce(function(a,b,i){ 
-								// return cumulative[i] = a+b;
-								return sparklineData[i].value = a+b;
-							}, beforeLastTwoWeeks);
 
-						// var sparklineValues = _(sparklineData).map(function(d) {return d.value });
+						var sparklineData = groupCasesByDate({
+							cases: sorted,
+							min: caseMinDate,
+							max: caseMaxDate,
+							initialValue: beforeLastTwoWeeks
+						});
 
 						var sparklineID = `#${createSafeName(school.name)} .trend`;
 						var sparklineWidth = Math.max(80, Math.min(100, Math.floor( $(window).width() / 6 )));
