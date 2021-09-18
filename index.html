@@ -48,7 +48,12 @@
 			</div>
 
 			<div id="grandTotal">
-				<strong>Total cases reported at all schools:</strong> <span id="grandTotalText">Loading…</span>
+				<p><strong>Total cases reported at all schools:</strong> <span id="grandTotalText"></span><span class="loading"><i class="fas fa-cog fa-spin"></i> Loading…</span> </p>
+				
+				<div id="allCasesContainer">
+					<canvas id="allCases"></canvas>	
+				</div>
+				
 			</div>
 			<div id="filter">
 				<label for="filterInput">Filter by school name:</label>
@@ -66,9 +71,7 @@
 			</div>
 		</header>
 
-		<div id="loading">
-			<i class="fas fa-cog fa-spin"></i> Loading…
-		</div>
+		<div class="loading"><i class="fas fa-cog fa-spin"></i> Loading…</div>
 		<div id="schoolList"></div>	
 	</div>
 
@@ -86,6 +89,9 @@
 	<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
 	  integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
 	  crossorigin=""></script>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@3.5.1/dist/chart.min.js" integrity="sha256-bC3LCZCwKeehY6T4fFi9VfOU0gztUa+S4cnkIhVPZ5E=" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/date-fns@2.23.0/index.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 	<script src="https://kit.fontawesome.com/34652e81df.js" crossorigin="anonymous"></script>
 	<script type="text/javascript" src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 	<script type="text/javascript" src="/sparkline.js"></script>
@@ -219,6 +225,9 @@
 				this.publicSubmission = args.publicSubmission;
 				this.count = args.count;
 			}
+			dateReportedJS() {
+				return new Date(this.dateReported);
+			}
 			sourceText() {
 				if (this.publicSubmission) {
 					return "Public submission";
@@ -293,6 +302,10 @@
 		    return dateArray;
 		}
 
+		function dateFormat(d) {
+			return months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear()
+		}
+
 		function groupCasesByDate(args) {
 			var cases = args.cases;
 			var caseMinDate = args.min;
@@ -309,7 +322,7 @@
 				.value();
 			
 			var finalData = _(dateRange).map(function(d) {
-				var dateStr = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
+				var dateStr = dateFormat(d);
 				var caseCount = casesByDate[dateStr];
 				if (caseCount === undefined) {
 					caseCount = 0;
@@ -747,7 +760,107 @@
 					var grandTotal = _(allCases).reduce(function(a, b) { return a + b.count}, 0);
 					$("#grandTotalText").text(grandTotal.toLocaleString());
 
-					$("#loading").slideUp("fast");
+					// Create all cases chart
+
+					Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Ubuntu, roboto, noto, arial, sans-serif";
+
+					var allCasesSorted = _(allCases).sortBy(function(theCase) {
+						return theCase.dateReportedJS();
+					});
+
+					var allCasesByDate = groupCasesByDate({
+						cases: allCases,
+						min: new Date("July 28, 2021"),
+						max: allCasesSorted[allCasesSorted.length-1].dateReportedJS(),
+						initialValue: 0
+					});
+					for (var i = 6; i < allCasesByDate.length; i++) {
+						var targetDate = allCasesByDate[i];
+						var sevenDayTotal = 0;
+						for (var j = 0; j < 6; j++) {
+							var idx = i-j;
+							sevenDayTotal += allCasesByDate[idx].dailyValue;
+						}
+						targetDate.sevenDayAvg = 1.0 * sevenDayTotal / 7;
+					}
+					var allCasesChartCtx = document.getElementById('allCases').getContext('2d');
+					var allCasesChart = new Chart(allCasesChartCtx, {
+						data: {
+							datasets: [{
+								type: 'bar',
+								label: 'Cases reported per day',
+								data: _(allCasesByDate).map(function(c) {return c.dailyValue}),
+								backgroundColor: "#ddd",
+								pointBackgroundColor: "#ddd",
+								borderColor: "#ddd",
+								pointRadius: 2,
+								pointBorderRadius: 0,
+								order: 2
+							}, {
+								type: 'line',
+								label: '7-day average of cases reported',
+								data: _(allCasesByDate).map(function(c) {return c.sevenDayAvg}),
+								pointRadius: 0,
+								backgroundColor: "#666",
+								borderColor: "#666",
+								order: 1
+							}],
+							labels: _(allCasesByDate).map(function(c) {return new Date(c.date)})
+						},
+						options: {
+							// aspectRatio: 2.5,
+							maintainAspectRatio: false,
+							interaction: {
+								mode: 'index'
+							},
+							scales: {
+								x: {
+									type: 'timeseries',
+									time: {
+										unit: 'month'
+									},
+									grid: {
+										display: false
+									},
+									ticks: {
+										display: true
+									}
+								},
+								y: {
+									ticks: {
+										count: 3
+									},
+									grid: {
+										// borderDash: [4, 4]
+									}
+								}
+							},
+							plugins: {
+								tooltip: {
+									position: 'nearest',
+									callbacks: {
+										title: function(context) {
+											var d = new Date(context[0].parsed.x);
+											return dateFormat(d);
+										}
+									}
+								},
+								legend: {
+									position: 'bottom',
+									labels: {
+										boxWidth: 6,
+										boxHeight: 6,
+										usePointStyle: true,
+										pointStyle: 'circle'
+									}
+								}
+							}
+						}
+					});
+
+
+					// Finish loading
+					$(".loading").slideUp("fast");
 
 				});
 

@@ -447,4 +447,9 @@ header #aboutData #aboutDataInner {
   margin-bottom: 20px;
 }
 
+#allCasesContainer {
+  width: 100%;
+  height: 200px;
+}
+
 /*# sourceMappingURL=main.css.map */
