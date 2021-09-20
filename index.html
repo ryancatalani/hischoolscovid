@@ -42,7 +42,7 @@
 					<p>Data updated daily on weekdays.</p>
 					<p>This data is primarily compiled from the <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/COVID-19-Information-Updates.aspx" target="_blank">Department of Education data dashboard</a>, starting from July 24, 2021.</p>
 					<p>If you have any data that’s missing, or see something inaccurate, click here to <a href="/submit.html">submit additional data</a>. Public data submissions are indicated in the list below.</p>
-					<p>School enrollment figures are from the 2021-22 school year, <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/2021-22-enrollment-figures-for-public-and-charter-schools.aspx" target="_blank">via the DOE</a>.</p>
+					<p>School enrollment figures are from the 2021-22 school year, <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/2021-22-enrollment-figures-for-public-and-charter-schools.aspx" target="_blank">via the DOE</a>. The latest available data on the number of teachers and administrative staff is from the 2019-20 school year, <a href="http://arch.k12.hi.us/reports/ssir" target="_blank">via the DOE</a>. Administrative staff figures are only available as FTEs per school, rather than headcount.</p>
 					<p><a href="https://unofficialhidoecoviddashboard.hawaiicoder.com/" target="_blank">Click here</a> to see another community-drive visualization with this data by John Johnson.</p>
 				</div>
 			</div>
@@ -66,7 +66,7 @@
 				Sort by:
 				<span class="sortKey active" data-key="recent">Recent cases</span>
 				• <span class="sortKey" data-key="change">Percent change</span>
-				• <span class="sortKey" data-key="ratio">Ratio of recent cases to students</span>
+				• <span class="sortKey" data-key="ratio">Ratio of recent cases to students & staff</span>
 				• <span class="sortKey" data-key="total">Total cases</span>
 			</div>
 		</header>
@@ -109,6 +109,8 @@
 				this.enrollment = args.enrollment;
 				this.prevTwoWeeks = args.prevTwoWeeks;
 				this.twoWeekChange = args.twoWeekChange;
+				this.teachers = args.teachers;
+				this.adminFTE = args.adminFTE;
 			}
 			safeName() {
 				return createSafeName(this.name);
@@ -125,24 +127,58 @@
 			cumulativeRecentText() {
 				return this.cumulativeRecent;
 			}
-			enrollmentText() {
+			ratioLabel() {
+				if (isNaN(this.teachers) && isNaN(this.adminFTE)) {
+					return "students";
+				}
+				return "students & staff";
+			}
+			ratioDescription() {
 				var text = "";
-				if (this.enrollment !== undefined && this.cumulative !== undefined && this.enrollment > 0 && this.cumulative > 0) {
-					// var ratio = Math.round(this.caseRatio());
-					// text += "About 1 case for every " + ratio.toLocaleString() + " students. ";
-					text += "SY21-22 enrollment: " + this.enrollment.toLocaleString() + ". Note that not all cases are from students.";
+				if (this.ratioBase() > 0) {
+					text += "SY21-22 enrollment: " + this.enrollment.toLocaleString();
+					if (!isNaN(this.teachers) || !isNaN(this.adminFTE)) {
+						text += ". SY19-20 staff: "
+					}
+					if (!isNaN(this.teachers)) {
+						text += this.teachers + " teachers"
+					}
+					if (!isNaN(this.teachers) && !isNaN(this.adminFTE)) {
+						text += " and "
+					}
+					if (!isNaN(this.adminFTE)) {
+						text += this.adminFTE.toLocaleString() + " administrative staff (FTE)";
+					}
+					if (isNaN(this.teachers) && isNaN(this.adminFTE)) {
+						text += ". Note that not all cases are from students"
+					}
+					text += ".";
 				}
 				return text;
 			}
+			ratioBase() {
+				var base = 0;
+				if (!isNaN(this.enrollment)) {
+					base += this.enrollment;
+					if (!isNaN(this.teachers)) {
+						base += this.teachers;
+					}
+					if (!isNaN(this.adminFTE)) {
+						base += Math.round(this.adminFTE);
+					}
+				}
+				console.log(this.name, base);
+				return base;
+			}
 			caseRatio() {
-				if (this.enrollment !== undefined && this.cumulative !== undefined && this.enrollment > 0 && this.cumulative > 0) {
-					return (1.0 * this.enrollment) / this.cumulative;	
+				if (this.ratioBase() > 0 && this.cumulative !== undefined && this.cumulative > 0) {
+					return (1.0 * this.ratioBase()) / this.cumulative;	
 				}
 				return 0;
 			}
 			recentCaseRatio() {
-				if (this.enrollment !== undefined && this.cumulativeRecent !== undefined && this.enrollment > 0 && this.cumulativeRecent > 0) {
-					return (1.0 * this.enrollment) / this.cumulativeRecent;	
+				if (this.ratioBase() > 0 && this.cumulativeRecent !== undefined && this.cumulativeRecent > 0) {
+					return (1.0 * this.ratioBase()) / this.cumulativeRecent;	
 				}
 				return 0;	
 			}
@@ -153,8 +189,8 @@
 				return "N/A";
 			}
 			invertedRatio() {
-				if (this.enrollment !== undefined && this.cumulative !== undefined && this.enrollment > 0 && this.cumulative > 0) {
-					return (1.0 * this.cumulative) / this.enrollment;
+				if (this.ratioBase() > 0 && this.cumulative !== undefined && this.cumulative > 0) {
+					return (1.0 * this.ratioBase()) / this.enrollment;
 				}
 				return 0;	
 			}
@@ -188,7 +224,7 @@
 					<div class='schoolStats'>
 							<div class='statLabel'>Recent cases (last 2 weeks)</div>
 							<div class='statLabel trendLabel'>Trend (last 2 weeks)</div>
-							<div class='statLabel'>Ratio of recent cases to students</div>
+							<div class='statLabel'>Ratio of recent cases to ${this.ratioLabel()}</div>
 							<div class='statLabel'>Total cases reported</div>
 							<div class='statValue'>
 								${this.cumulativeRecentText()}
@@ -198,7 +234,7 @@
 							<div class='statValue'>${this.recentCaseRatioText()}</div>
 							<div class='statValue'>${this.cumulativeText()}</div>
 					</div>
-					<div class='schoolDataNotes'>${this.enrollmentText()} Percent change compares cases reported in last two weeks (${this.cumulativeRecent}) against cases reported in the previous two-week period (${this.prevTwoWeeks}).</div>
+					<div class='schoolDataNotes'>${this.ratioDescription()} Percent change compares cases reported in last two weeks (${this.cumulativeRecent}) against cases reported in the previous two-week period (${this.prevTwoWeeks}).</div>
 				</div>`;
 				return template;
 
@@ -663,6 +699,8 @@
 							school.lat = parseFloat(schoolObj.Y);
 							school.long = parseFloat(schoolObj.X);
 							school.enrollment = parseInt(schoolObj.Enrollment);	
+							school.teachers = parseInt(schoolObj.Teachers);
+							school.adminFTE = parseFloat(schoolObj.AdminFTE);
 						}
 						allSchools.push(school);
 					});
