@@ -460,6 +460,14 @@ header {
 
 #grandTotal {
 	margin-bottom: 20px;
+	p:first-child {
+		margin-bottom: 5px;
+	}
+	#lastUpdated {
+		font-size: 12px;
+		line-height: 1em;
+		color: #666;
+	}
 }
 
 #allCasesContainer {

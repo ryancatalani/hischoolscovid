@@ -552,7 +552,8 @@ $(function() {
 
 	var casesURL = "https://rcpublic.s3.amazonaws.com/doe_cases/cases.csv";
 	var schoolsURL = "https://rcpublic.s3.amazonaws.com/doe_cases/schools.csv";
-	var complexAreasURL = "/School_Complex_Areas.geojson"
+	var complexAreasURL = "/School_Complex_Areas.geojson";
+	var metaURL = "https://rcpublic.s3.amazonaws.com/doe_cases/meta.json";
 
 	function pparse(url) {
 		var d = $.Deferred();
@@ -566,7 +567,7 @@ $(function() {
 		});
 		return d.promise();
 	}
-	function getGeoJSON(url) {
+	function getJSONPromise(url) {
 		var d = $.Deferred();
 		$.getJSON(url, function(data){
 			d.resolve(data);
@@ -574,7 +575,16 @@ $(function() {
 		return d.promise();
 	}
 
-	$.when( pparse(schoolsURL), pparse(casesURL), getGeoJSON(complexAreasURL) )
+	$.when( getJSONPromise(metaURL) ).done(function(metaData) {
+		console.log(metaData);
+
+		$("#grandTotalText").text(metaData.grand_total.toLocaleString());
+		$("#lastUpdatedText").text(metaData.last_updated);
+		$("#lastUpdated").slideDown("fast");
+		$("#grandTotalLoading").slideUp("fast");
+	});
+
+	$.when( pparse(schoolsURL), pparse(casesURL), getJSONPromise(complexAreasURL) )
 		.done(function(schools, casesData, complexAreas) {
 
 			// Parse complex areas
@@ -686,10 +696,6 @@ $(function() {
 					}).addTo(schoolMap);
 				}
 			});
-
-			// Calculate grand total
-			var grandTotal = _(allCases).reduce(function(a, b) { return a + b.count}, 0);
-			$("#grandTotalText").text(grandTotal.toLocaleString());
 
 			// Create all cases chart
 

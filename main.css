@@ -446,6 +446,14 @@ header #aboutData #aboutDataInner {
 #grandTotal {
   margin-bottom: 20px;
 }
+#grandTotal p:first-child {
+  margin-bottom: 5px;
+}
+#grandTotal #lastUpdated {
+  font-size: 12px;
+  line-height: 1em;
+  color: #666;
+}
 
 #allCasesContainer {
   width: 100%;
