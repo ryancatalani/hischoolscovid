@@ -23,6 +23,34 @@ def to_csv_str(arr)
 	return csv_str.chomp
 end
 
+def group_cases_by_date(args)
+	cases = args[:cases]
+	case_min_date = args[:min]
+	case_max_date = args[:max]
+	initial_value = args[:initial_value]
+
+	# d: daily, c: cumulative, a: 7-day average
+
+	grouped = (case_min_date..case_max_date).map do |date|
+		{
+			date: date.strftime("%B %d, %Y"),
+			d: cases.filter{|c| c[:date_reported] == date }.sum{|c| c[:count]}
+		}
+	end
+	grouped.each_with_index do |g,i|
+		cumulative = grouped[0..i+1].sum{|c| c[:d]} + initial_value
+		grouped[i][:c] = cumulative
+
+		if i >= 6
+			# at least 7 days of values
+			avg = grouped[i-6..i].sum{|c| c[:d]}.to_f / 7.0
+			grouped[i][:a] = avg.round
+		end
+	end
+
+	return grouped
+end
+
 def parse_cases(sheet, s3)
 	parsed_cases = []
 
@@ -101,25 +129,37 @@ def parse_cases(sheet, s3)
 
 	end
 
-	# pp parsed_cases
-
 	grand_total = parsed_cases.sum{|c| c[:count] }
 	puts "Grand total: #{grand_total}"
 
+	parsed_cases.sort_by!{|c| c[:date_reported]}
+
+	latest_case_date = parsed_cases.last[:date_reported]
+	all_cases_by_date = group_cases_by_date({
+		cases: parsed_cases,
+		min: Date.parse("July 28, 2021"),
+		max: latest_case_date,
+		initial_value: 0
+	})
+
 	meta = {
 		last_updated: Time.now.strftime("%B %d, %Y"),
-		grand_total: grand_total
+		grand_total: grand_total,
+		all_cases_by_date: all_cases_by_date
 	}
 
-	s3.bucket(ENV['S3_BUCKET']).object("doe_cases/meta.json").put(body: meta.to_json, acl: "public-read")
-	s3.bucket(ENV['S3_BUCKET']).object("doe_cases/cases.csv").put(body: to_csv_str(parsed_cases), acl: "public-read")
-	puts "✅  Saved cases and metadata to S3."
+	if !s3.nil?
+		s3.bucket(ENV['S3_BUCKET']).object("doe_cases/cases.csv").put(body: to_csv_str(parsed_cases), acl: "public-read")
+		puts "✅  Saved cases to S3."
+	end
 
-	parse_complex_areas(parsed_cases, s3)
+	parse_complex_areas(parsed_cases, latest_case_date, s3)
+	parse_schools(parsed_cases, latest_case_date, meta, s3)
 end
 
-def parse_schools(s3)
+def parse_schools(parsed_cases, latest_case_date, meta, s3)
 	schools = []
+	schools_meta = {}
 	all_school_data = SmarterCSV.process('schoolslist.csv')
 
 	school_names = parsed_cases.map{|c| c[:school]} + all_school_data.map{|s| s[:sch_name]}
@@ -129,9 +169,9 @@ def parse_schools(s3)
 
 		school_cases = parsed_cases.filter{|c| c[:school] == school_name}
 		
-		cumulative_recent = school_cases.filter{|c| Date.today - c[:date_reported] <= 14}.sum{|c| c[:count]}
+		cumulative_recent = school_cases.filter{|c| latest_case_date - c[:date_reported] <= 14}.sum{|c| c[:count]}
 		prev_two_weeks = school_cases.filter{ |c| 
-			(Date.today - c[:date_reported] > 14) && (Date.today - c[:date_reported] <= 28)
+			(latest_case_date - c[:date_reported] > 14) && (latest_case_date - c[:date_reported] <= 28)
 		}.sum{|c| c[:count]}
 		two_week_change = "N/A"
 
@@ -164,15 +204,29 @@ def parse_schools(s3)
 
 		schools << the_school
 
+		daily_cases_last_2_weeks = group_cases_by_date({
+			cases: school_cases,
+			min: latest_case_date - 14,
+			max: latest_case_date,
+			initial_value: school_cases.filter{|c| c[:date_reported] < (latest_case_date-14) }.sum{|c| c[:count]}
+		})
+		# puts school_name
+		# pp daily_cases_last_2_weeks
+		schools_meta[school_name] = daily_cases_last_2_weeks
 	end
 
-	# pp schools
+	meta[:schools_last_2_weeks] = schools_meta
 
-	s3.bucket(ENV['S3_BUCKET']).object("doe_cases/schools.csv").put(body: to_csv_str(schools), acl: "public-read")
-	puts "✅  Saved schools to S3."
+	if !s3.nil?
+		s3.bucket(ENV['S3_BUCKET']).object("doe_cases/schools.csv").put(body: to_csv_str(schools), acl: "public-read")
+		puts "✅  Saved schools to S3."
+
+		s3.bucket(ENV['S3_BUCKET']).object("doe_cases/meta.json").put(body: meta.to_json, acl: "public-read")
+		puts "✅  Saved meta to S3."
+	end
 end
 
-def parse_complex_areas(parsed_cases, s3)
+def parse_complex_areas(parsed_cases, latest_case_date, s3)
 	complex_areas = []
 	
 	geojson = JSON.parse(File.read("School_Complex_Areas.geojson"))
@@ -180,7 +234,7 @@ def parse_complex_areas(parsed_cases, s3)
 		complex_area_name = feature["properties"]["complex_area"]
 
 		cases_in_area = parsed_cases.filter{|c| c[:complex_area].upcase == complex_area_name }
-		recent_cases_in_area = cases_in_area.filter{|c| Date.today - c[:date_reported] <= 14 }
+		recent_cases_in_area = cases_in_area.filter{|c| latest_case_date - c[:date_reported] <= 14 }
 
 		complex_areas << {
 			name: complex_area_name,
@@ -192,9 +246,10 @@ def parse_complex_areas(parsed_cases, s3)
 		# geojson["features"][index]["properties"]["recent_case_total"] = recent_cases_in_area.sum{|c| c[:count]}
 	end
 	
-	s3.bucket(ENV['S3_BUCKET']).object("doe_cases/complexareas.json").put(body: complex_areas.to_json, acl: "public-read")
-	puts "✅  Saved complex areas to S3."
+	if !s3.nil?
+		s3.bucket(ENV['S3_BUCKET']).object("doe_cases/complexareas.json").put(body: complex_areas.to_json, acl: "public-read")
+		puts "✅  Saved complex areas to S3."
+	end
 end
 
 parse_cases(sheet, s3)
-# parse_schools(s3)
