@@ -552,7 +552,8 @@ $(function() {
 
 	var casesURL = "https://rcpublic.s3.amazonaws.com/doe_cases/cases.csv";
 	var schoolsURL = "https://rcpublic.s3.amazonaws.com/doe_cases/schools.csv";
-	var complexAreasURL = "/School_Complex_Areas.geojson";
+	var complexAreasURL = "https://rcpublic.s3.amazonaws.com/doe_cases/School_Complex_Areas.geojson";
+	var complexAreasDataURL = "https://rcpublic.s3.amazonaws.com/doe_cases/complexareas.json"
 	var metaURL = "https://rcpublic.s3.amazonaws.com/doe_cases/meta.json";
 
 	function pparse(url) {
@@ -576,25 +577,26 @@ $(function() {
 	}
 
 	$.when( getJSONPromise(metaURL) ).done(function(metaData) {
-		console.log(metaData);
-
 		$("#grandTotalText").text(metaData.grand_total.toLocaleString());
 		$("#lastUpdatedText").text(metaData.last_updated);
 		$("#lastUpdated").slideDown("fast");
 		$("#grandTotalLoading").slideUp("fast");
 	});
 
-	$.when( pparse(schoolsURL), pparse(casesURL), getJSONPromise(complexAreasURL) )
-		.done(function(schools, casesData, complexAreas) {
+	$.when( pparse(schoolsURL), pparse(casesURL), getJSONPromise(complexAreasURL), getJSONPromise(complexAreasDataURL) )
+		.done(function(schools, casesData, complexAreas, complexAreasData) {
 
 			// Parse complex areas
 
 			_(complexAreas.features).map(function(row) {
+				var areaName = row.properties.complex_area;
+				var areaData = _(complexAreasData).find(function(c) { return c.name == areaName });
+
 				var complex = new ComplexArea({
-					name: row.properties.complex_area,
+					name: areaName,
 					geoJSON: row,
-					caseTotal: 0,
-					recentCaseTotal: 0
+					caseTotal: areaData.total,
+					recentCaseTotal: areaData.recent_total
 				});
 				allComplexAreas.push(complex);
 			});
@@ -627,19 +629,6 @@ $(function() {
 					lastDateOnCampus: row.last_date_on_campus,
 					source: row.source
 				});
-				if (row.complex_area !== undefined && row.complex_area !== "") {
-					var complex = _(allComplexAreas).find(function(c) {
-						return c.name === row.complex_area.toLocaleUpperCase();
-					});
-					if (complex !== undefined) {
-						complex.caseTotal += theCase.count;
-						var caseDate = new Date(theCase.dateReported);
-						if ( (today-caseDate)/(1000*60*60*24) <= 14 ) {
-							complex.recentCaseTotal += theCase.count;
-						}
-					}
-				}
-
 				allCases.push(theCase);
 			});
 
