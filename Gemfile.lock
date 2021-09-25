@@ -1,6 +1,24 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    aws-eventstream (1.2.0)
+    aws-partitions (1.506.0)
+    aws-sdk-core (3.121.1)
+      aws-eventstream (~> 1, >= 1.0.2)
+      aws-partitions (~> 1, >= 1.239.0)
+      aws-sigv4 (~> 1.1)
+      jmespath (~> 1.0)
+    aws-sdk-kms (1.48.0)
+      aws-sdk-core (~> 3, >= 3.120.0)
+      aws-sigv4 (~> 1.1)
+    aws-sdk-s3 (1.103.0)
+      aws-sdk-core (~> 3, >= 3.120.0)
+      aws-sdk-kms (~> 1)
+      aws-sigv4 (~> 1.4)
+    aws-sigv4 (1.4.0)
+      aws-eventstream (~> 1, >= 1.0.2)
+    dotenv (2.7.6)
+    jmespath (1.4.0)
     mini_portile2 (2.6.1)
     nokogiri (1.12.4)
       mini_portile2 (~> 2.6.1)
@@ -16,6 +34,8 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  aws-sdk-s3
+  dotenv
   roo (~> 2.8.0)
   smarter_csv
 

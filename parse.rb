@@ -1,13 +1,30 @@
+require "dotenv/load"
 require "roo"
 require "date"
 require "smarter_csv"
+require "aws-sdk-s3"
+require "json"
+require "csv"
 
 parsed_cases = []
 schools = []
 
+# CSV helper
+
+def to_csv_str(arr)
+	# Array of hashes
+	csv_str = CSV.generate do |csv|
+		csv << arr.first.keys
+		arr.each do |row|
+			csv << row.values
+		end
+	end
+	return csv_str
+end
+
 # Load case spreadsheet
 
-xlsx = Roo::Spreadsheet.open("LIST-20210923.xlsx")
+xlsx = Roo::Spreadsheet.open(ARGV[0])
 sheet = xlsx.sheet(0)
 
 # Clean up cases
@@ -49,7 +66,7 @@ last_row = sheet.last_row
 		split_count = count.split("\n")
 
 		if split_islands.count != split_count.count
-			puts "Mismatch in split: row #{row_index}"
+			puts "⚠️  Alert: Mismatch in split: row #{row_index}"
 		end
 
 		split_islands.count.times do |split_index|
@@ -80,7 +97,7 @@ last_row = sheet.last_row
 
 end
 
-pp parsed_cases
+# pp parsed_cases
 
 grand_total = parsed_cases.sum{|c| c[:count] }
 puts "Grand total: #{grand_total}"
@@ -116,7 +133,7 @@ school_names.each do |school_name|
 
 	school_data = all_school_data.find{|s| s[:sch_name] == school_name }
 	if school_data.nil?
-		puts "⚠️ Alert: No data found for #{school_name}"
+		puts "⚠️  Alert: No data found for #{school_name}"
 	else
 		# School data found
 		the_school.merge!({
@@ -133,4 +150,15 @@ school_names.each do |school_name|
 
 end
 
-pp schools
+# pp schools
+
+meta = {
+	last_updated: Time.now.strftime("%B %d, %Y"),
+	grand_total: grand_total
+}
+
+s3 = Aws::S3::Resource.new(region: ENV['S3_REGION'])
+s3.bucket(ENV['S3_BUCKET']).object("doe_cases/meta.json").put(body: meta.to_json, acl: "public-read")
+s3.bucket(ENV['S3_BUCKET']).object("doe_cases/cases.csv").put(body: to_csv_str(parsed_cases), acl: "public-read")
+s3.bucket(ENV['S3_BUCKET']).object("doe_cases/schools.csv").put(body: to_csv_str(schools), acl: "public-read")
+puts "Saved to S3."
