@@ -19,7 +19,7 @@ def to_csv_str(arr)
 			csv << row.values
 		end
 	end
-	return csv_str
+	return csv_str.chomp
 end
 
 # Load case spreadsheet
