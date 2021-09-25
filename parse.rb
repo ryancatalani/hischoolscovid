@@ -57,8 +57,13 @@ last_row = sheet.last_row
 	end
 
 	last_date_on_campus = sheet.cell(row_index, 4)
+	if last_date_on_campus.nil?
+		last_date_on_campus = "Unspecified"
+	end
+
 	island = sheet.cell(row_index, 5)
 	count = sheet.cell(row_index, 6)
+	source = "https://public.tableau.com/app/profile/hidoe.dga/viz/COVID-19HIDOECaseCountPublicDashboard/List"
 
 	if (island =~ /\n/ && count =~ /\n/)
 		# PDF parsed incorrectly and row needs to be manually split
@@ -76,8 +81,9 @@ last_row = sheet.last_row
 				date_reported_str: date_reported_str,
 				date_reported: date_reported,
 				last_date_on_campus: last_date_on_campus,
-				island: split_islands[split_index],
-				count: split_count[split_index].to_i
+				# island: split_islands[split_index],
+				count: split_count[split_index].to_i,
+				source: source
 			}
 			parsed_cases << the_case
 		end
@@ -89,8 +95,9 @@ last_row = sheet.last_row
 			date_reported_str: date_reported_str,
 			date_reported: date_reported,
 			last_date_on_campus: last_date_on_campus,
-			island: island,
-			count: count.to_i
+			# island: island,
+			count: count.to_i,
+			source: source
 		}
 		parsed_cases << the_case
 	end
