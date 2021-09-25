@@ -138,17 +138,6 @@ class School {
 			<div class='schoolDataNotes'>${this.ratioDescription()} Percent change compares cases reported in last two weeks (${this.cumulativeRecent}) against cases reported in the previous two-week period (${this.prevTwoWeeks}).</div>
 		</div>`;
 		return template;
-
-
-		// var template = _.template("<div class='school' data-name='<%= safeName %>'><div class='schoolName'><%= name %></div><div class='schoolDesc'>Total cases reported: <%= cumulative %><span class='zoomTo' data-lat='<%= lat %>' data-long='<%= long %>'><i class='fas fa-search-plus'></i> Zoom to this school</span></div><div class='schoolEnrollment'><%= enrollment %></div></div>");
-		// return template({
-		// 	name: this.name, 
-		// 	safeName: this.safeName(),
-		// 	cumulative: this.cumulativeText(),
-		// 	lat: this.lat,
-		// 	long: this.long,
-		// 	enrollment: this.enrollmentText()
-		// });
 	}
 }
 class Case {
@@ -213,6 +202,7 @@ class ComplexArea {
 var allSchools = [];
 var allCases = [];
 var allComplexAreas = [];
+var allSparklineData;
 var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 var today = new Date();
 today.setHours(0,0,0,0);
@@ -297,18 +287,20 @@ function findClosest(target, tagName) {
 }
 
 var sparklineOptions = {
+  fetch(entry) {
+  	return entry.c;
+  },
   onmousemove(event, datapoint) {
     var svg = findClosest(event.target, "svg");
     var tooltip = svg.nextElementSibling;
     var date = datapoint.date;
-    var plur = datapoint.value === 1 ? "" : "s";
+    var plur = datapoint.c === 1 ? "" : "s";
 
     tooltip.hidden = false;
-    tooltip.textContent = `${date}: ${datapoint.value} case${plur} reported`;
+    tooltip.textContent = `${date}: ${datapoint.c} case${plur} reported`;
     tooltip.style.top = `${event.offsetY - 23}px`;
     tooltip.style.left = `${event.offsetX + 20}px`;
   },
-
   onmouseout() {
     var svg = findClosest(event.target, "svg");
     var tooltip = svg.nextElementSibling;
@@ -367,8 +359,37 @@ $(function() {
 	// Set up cases click
 
 	$("#schoolList").on("click", ".casesLabel", function() {
-		$(this).next().slideToggle("fast");
+		var $casesWrap = $(this).next();
+		$casesWrap.slideToggle("fast");
 		$(this).toggleClass("active");
+		
+		if (allCases.length === 0) {
+			$casesWrap.append('<div class="loading"><i class="fas fa-cog fa-spin"></i> Loading…</div>');
+
+			$.when(pparse(casesURL)).done(function(casesData){
+				_(casesData.reverse()).each(function(row, index) {
+					var theCase = new Case({
+						school: row.school,
+						dateReported: row.date_reported_str,
+						publicSubmission: row["Public Submission"] == "TRUE",
+						count: row.count,
+						lastDateOnCampus: row.last_date_on_campus,
+						source: row.source
+					});
+					allCases.push(theCase);
+
+					var schoolName = createSafeName(theCase.school);
+					var $schoolEl = $("#" + schoolName);
+					$schoolEl.find('.casesInner').append( theCase.element() );
+				});
+				_(allSchools).each(function(school) {
+					var $schoolEl = $("#" + createSafeName(school.name));
+					$schoolEl.find('.casesInner').css('width', 310 * school.cumulative + 'px');	
+				})
+			});
+
+			$casesWrap.find(".loading").slideUp("fast");
+		}
 	});
 
 	// Set up filter
@@ -502,40 +523,10 @@ $(function() {
 				schoolMap.addLayer(markers);	
 			}	
 
-			// Enable for case display
-			var beforeLastTwoWeeks = _.chain(allCases).filter(function(theCase) {
-				var caseDate = new Date(theCase.dateReported);
-				return (theCase.school == school.name) && ((today-caseDate)/(1000*60*60*24) > 14);
-			}).reduce(function(a, b) {
-				return a + b.count;
-			},0).value();
-
-			var sorted = _.chain(allCases).filter(function(theCase) {
-				return theCase.school == school.name;
-			}).each(function(theCase) {
-				$schoolEl.find('.casesInner').append( theCase.element() );
-				$schoolEl.find('.casesInner').css('width', 310 * school.cumulative + 'px');
-			}).sort(function(theCase) {
-				return new Date(theCase.dateReported);
-			}).reverse().value();
-
-			var sortedLastTwoWeeks = _(sorted).filter(function(theCase) {
-				var caseDate = new Date(theCase.dateReported);
-				return (today-caseDate)/(1000*60*60*24) <= 14;
-			});
-
-			if (sorted.length > 0) {
+			if (school.cumulativeRecent > 0) {
 				// Sparkline
 
-				var caseMinDate = new Date(today - (1000*60*60*24*14));
-				var caseMaxDate = today;
-
-				var sparklineData = groupCasesByDate({
-					cases: sorted,
-					min: caseMinDate,
-					max: caseMaxDate,
-					initialValue: beforeLastTwoWeeks
-				});
+				var sparklineData = allSparklineData[school.name];
 
 				var sparklineID = `#${createSafeName(school.name)} .trend`;
 				var sparklineWidth = Math.max(80, Math.min(100, Math.floor( $(window).width() / 6 )));
@@ -576,15 +567,8 @@ $(function() {
 		return d.promise();
 	}
 
-	$.when( getJSONPromise(metaURL) ).done(function(metaData) {
-		$("#grandTotalText").text(metaData.grand_total.toLocaleString());
-		$("#lastUpdatedText").text(metaData.last_updated);
-		$("#lastUpdated").slideDown("fast");
-		$("#grandTotalLoading").slideUp("fast");
-	});
-
-	$.when( pparse(schoolsURL), pparse(casesURL), getJSONPromise(complexAreasURL), getJSONPromise(complexAreasDataURL) )
-		.done(function(schools, casesData, complexAreas, complexAreasData) {
+	$.when( pparse(schoolsURL), getJSONPromise(metaURL) , getJSONPromise(complexAreasURL), getJSONPromise(complexAreasDataURL) )
+		.done(function(schools, metaData, complexAreas, complexAreasData) {
 
 			// Parse complex areas
 
@@ -620,21 +604,26 @@ $(function() {
 				allSchools.push(school);
 			});
 
-			_(casesData).each(function(row) {
-				var theCase = new Case({
-					school: row.school,
-					dateReported: row.date_reported_str,
-					publicSubmission: row["Public Submission"] == "TRUE",
-					count: row.count,
-					lastDateOnCampus: row.last_date_on_campus,
-					source: row.source
-				});
-				allCases.push(theCase);
-			});
+			$("#grandTotalText").text(metaData.grand_total.toLocaleString());
+			$("#lastUpdatedText").text(metaData.last_updated);
+			$("#lastUpdated").slideDown("fast");
+
+			// _(casesData).each(function(row) {
+			// 	var theCase = new Case({
+			// 		school: row.school,
+			// 		dateReported: row.date_reported_str,
+			// 		publicSubmission: row["Public Submission"] == "TRUE",
+			// 		count: row.count,
+			// 		lastDateOnCampus: row.last_date_on_campus,
+			// 		source: row.source
+			// 	});
+			// 	allCases.push(theCase);
+			// });
 
 			// Display data
 
-			displayData({allSchools: allSchools, schoolMap: schoolMap, sortKey: "recent"});
+			allSparklineData = metaData.schools_last_2_weeks;
+			displayData({allSchools: allSchools, schoolMap: schoolMap, sortKey: "recent" });
 
 			// Display complex areas
 			var complexAreaCounts = _.chain(allComplexAreas).map(function(complex) {
@@ -690,32 +679,14 @@ $(function() {
 
 			Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Ubuntu, roboto, noto, arial, sans-serif";
 
-			var allCasesSorted = _(allCases).sortBy(function(theCase) {
-				return theCase.dateReportedJS();
-			});
-
-			var allCasesByDate = groupCasesByDate({
-				cases: allCases,
-				min: new Date("July 28, 2021"),
-				max: allCasesSorted[allCasesSorted.length-1].dateReportedJS(),
-				initialValue: 0
-			});
-			for (var i = 6; i < allCasesByDate.length; i++) {
-				var targetDate = allCasesByDate[i];
-				var sevenDayTotal = 0;
-				for (var j = 0; j < 6; j++) {
-					var idx = i-j;
-					sevenDayTotal += allCasesByDate[idx].dailyValue;
-				}
-				targetDate.sevenDayAvg = Math.round(1.0 * sevenDayTotal / 7);
-			}
+			var chartData = metaData.all_cases_by_date;
 			var allCasesChartCtx = document.getElementById('allCases').getContext('2d');
 			var allCasesChart = new Chart(allCasesChartCtx, {
 				data: {
 					datasets: [{
 						type: 'bar',
 						label: 'Cases reported per day',
-						data: _(allCasesByDate).map(function(c) {return c.dailyValue}),
+						data: _(chartData).map(function(c) {return c.d}),
 						backgroundColor: "#ddd",
 						pointBackgroundColor: "#ddd",
 						borderColor: "#ddd",
@@ -725,13 +696,13 @@ $(function() {
 					}, {
 						type: 'line',
 						label: '7-day average of cases reported',
-						data: _(allCasesByDate).map(function(c) {return c.sevenDayAvg}),
+						data: _(chartData).map(function(c) {return c.a}),
 						pointRadius: 0,
 						backgroundColor: "#666",
 						borderColor: "#666",
 						order: 1
 					}],
-					labels: _(allCasesByDate).map(function(c) {return new Date(c.date)})
+					labels: _(chartData).map(function(c) {return new Date(c.date)})
 				},
 				options: {
 					// aspectRatio: 2.5,
