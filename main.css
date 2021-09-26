@@ -369,22 +369,30 @@ header #aboutData #aboutDataInner {
   color: #666;
 }
 
+.schoolBtns {
+  display: block;
+  margin-top: 5px;
+}
+@media (min-width: 1400px) {
+  .schoolBtns {
+    display: inline;
+    margin-top: 0;
+  }
+}
+
 .zoomTo, .pinBtn {
   font-weight: normal;
   color: #0063A3;
-  margin-top: 5px;
-  display: block;
   font-size: 16px;
   line-height: 1em;
+  margin-right: 10px;
 }
 .zoomTo:hover, .pinBtn:hover {
   cursor: pointer;
   text-decoration: underline;
 }
-@media (min-width: 800px) {
+@media (min-width: 1400px) {
   .zoomTo, .pinBtn {
-    display: inline;
-    margin-top: 0;
     margin-left: 20px;
   }
 }
@@ -423,7 +431,7 @@ header #aboutData #aboutDataInner {
   display: none;
 }
 
-.leaflet-popup-content .zoomTo, .leaflet-popup-content .pinBtnWrap {
+.leaflet-popup-content .zoomTo, .leaflet-popup-content .pinBtnWrap, .leaflet-popup-content .schoolDataNotes {
   display: none;
 }
 

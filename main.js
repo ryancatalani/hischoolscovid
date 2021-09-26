@@ -120,10 +120,12 @@ class School {
 		var template = `<div class='school ${id}' data-name='${this.safeName()}'>
 			<div class='schoolName'>
 				${this.name}
-				<span class='zoomTo' data-lat='${this.lat}' data-long='${this.long}'><i class='fas fa-search-plus'></i> Zoom to this school</span>
-				<span class='pinBtnWrap'>
-					<span class='pinSchool pinBtn'><i class="fas fa-thumbtack"></i> Pin this school</span>
-					<span class='unpinSchool pinBtn'><i class="far fa-thumbtack"></i> Unpin</span>
+				<span class='schoolBtns'>
+					<span class='zoomTo' data-lat='${this.lat}' data-long='${this.long}'><i class='fas fa-search-plus'></i> Zoom to this school</span>
+					<span class='pinBtnWrap'>
+						<span class='pinSchool pinBtn'><i class="fas fa-thumbtack"></i> Pin this school</span>
+						<span class='unpinSchool pinBtn'><i class="far fa-thumbtack"></i> Unpin</span>
+					</span>
 				</span>
 			</div>
 			<div class='schoolStats'>
@@ -207,6 +209,7 @@ var allSchools = [];
 var allCases = [];
 var allComplexAreas = [];
 var allSparklineData;
+var windowWidth;
 var pinnedSchools = [];
 var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 var today = new Date();
@@ -318,7 +321,7 @@ $(function() {
 
 	// Set up map
 
-	var windowWidth = $(window).width();
+	windowWidth = $(window).width();
 	var defaultZoom = 7;
 	if ($(window).width  > 700) {
 		defaultZoom = 8;
@@ -414,6 +417,10 @@ $(function() {
 
 		if (animate) {
 			var scrollTo = $("#pinnedSchoolList").offset().top;
+			if (windowWidth < 800) {
+				scrollTo -= $("#schoolMapWrap").height();
+			}
+
 			$("html, body").animate({scrollTop: scrollTo});	
 			$(".headerWithPins").slideDown("fast");
 		} else {

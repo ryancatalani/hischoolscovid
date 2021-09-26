@@ -387,20 +387,26 @@ header {
 	color: #666;
 }
 
+.schoolBtns {
+	display: block;	
+	margin-top: 5px;
+	@media(min-width: 1400px) {
+		display: inline;
+		margin-top: 0;
+	}
+}
+
 .zoomTo, .pinBtn {
 	font-weight: normal; 
 	color: $blue;
-	margin-top: 5px;
-	display: block;
 	font-size: 16px;
 	line-height: 1em;
+	margin-right: 10px;
 	&:hover {
 		cursor: pointer;
 		text-decoration: underline;
 	}
-	@media(min-width: 800px) {
-		display: inline;
-		margin-top: 0;
+	@media(min-width: 1400px) {
 		margin-left: 20px;
 	}
 }
@@ -440,7 +446,7 @@ header {
 }
 
 .leaflet-popup-content {
-	.zoomTo, .pinBtnWrap {
+	.zoomTo, .pinBtnWrap, .schoolDataNotes {
 		display: none;
 	}
 }
