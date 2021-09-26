@@ -117,10 +117,14 @@ class School {
 	}
 	element(useID) {
 		var id = useID === true ? this.safeName() : "";
-		var template = `<div class='school' data-name='${this.safeName()}' id='${id}'>
+		var template = `<div class='school ${id}' data-name='${this.safeName()}'>
 			<div class='schoolName'>
 				${this.name}
 				<span class='zoomTo' data-lat='${this.lat}' data-long='${this.long}'><i class='fas fa-search-plus'></i> Zoom to this school</span>
+				<span class='pinBtnWrap'>
+					<span class='pinSchool pinBtn'><i class="fas fa-thumbtack"></i> Pin this school</span>
+					<span class='unpinSchool pinBtn'><i class="far fa-thumbtack"></i> Unpin</span>
+				</span>
 			</div>
 			<div class='schoolStats'>
 					<div class='statLabel'>Recent cases (last 2 weeks)</div>
@@ -203,6 +207,7 @@ var allSchools = [];
 var allCases = [];
 var allComplexAreas = [];
 var allSparklineData;
+var pinnedSchools = [];
 var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 var today = new Date();
 today.setHours(0,0,0,0);
@@ -358,7 +363,7 @@ $(function() {
 
 	// Set up cases click
 
-	$("#schoolList").on("click", ".casesLabel", function() {
+	$("#schoolList, #pinnedSchoolList").on("click", ".casesLabel", function() {
 		var $casesWrap = $(this).next();
 		$casesWrap.slideToggle("fast");
 		$(this).toggleClass("active");
@@ -379,17 +384,64 @@ $(function() {
 					allCases.push(theCase);
 
 					var schoolName = createSafeName(theCase.school);
-					var $schoolEl = $("#" + schoolName);
+					var $schoolEl = $("." + schoolName);
 					$schoolEl.find('.casesInner').append( theCase.element() );
 				});
 				_(allSchools).each(function(school) {
-					var $schoolEl = $("#" + createSafeName(school.name));
+					var $schoolEl = $("." + createSafeName(school.name));
 					$schoolEl.find('.casesInner').css('width', 310 * school.cumulative + 'px');	
-				})
+				});
+				$casesWrap.find(".loading").slideUp("fast");
+			});
+		}
+	});
+
+	// Set up pin click
+
+	function pinSchool(schoolEl, animate) {
+		var schoolName = schoolEl.data("name");
+		var $pinnedEl = schoolEl.clone().appendTo("#pinnedSchoolList");
+		$("." + schoolName).addClass("pinned");
+		pinnedSchools.push(schoolName);
+
+		$pinnedEl.find(".trend").empty();
+
+		var originalName = _(allSchools).find(function(s) {return s.safeName() === schoolName}).name;
+		createSparkline(originalName, "#pinnedSchoolList");
+
+		if (animate) {
+			var scrollTo = $("#pinnedSchoolList").offset().top;
+			$("html, body").animate({scrollTop: scrollTo});	
+			$(".headerWithPins").slideDown("fast");
+		} else {
+			$(".headerWithPins").show();
+		}
+	}
+
+	$("#schoolList, #pinnedSchoolList").on("click", ".pinBtn", function() {
+		var $schoolEl = $(this).parents(".school");
+		var schoolName = $schoolEl.data("name");
+
+		if (!$schoolEl.hasClass("pinned")) {
+			// Add pin
+
+			pinSchool($schoolEl, true);
+		} else {
+			// Remove pin
+			$("#pinnedSchoolList").find("."+schoolName).slideUp("fast", function() {
+				$(this).remove();
 			});
 
-			$casesWrap.find(".loading").slideUp("fast");
+			$("." + schoolName).removeClass("pinned");
+			var index = pinnedSchools.indexOf(schoolName);
+			pinnedSchools.splice(index, 1);
+
+			if (pinnedSchools.length == 0) {
+				$(".headerWithPins").slideUp("fast");				
+			}
 		}
+
+		Cookies.set('pins', JSON.stringify(pinnedSchools));
 	});
 
 	// Set up filter
@@ -411,7 +463,7 @@ $(function() {
 		}
 
 		$("#filterClear").show();
-		$(".school").each(function() {
+		$("#schoolList").find(".school").each(function() {
 			var name = $(this).data('name');
 			var school = _(allSchools).find(function(s) {
 				return s.safeName() == name;
@@ -461,7 +513,7 @@ $(function() {
 
 	// Set up Zoom
 
-	$("#schoolList").on("click", ".zoomTo", function() {
+	$("#schoolList, #pinnedSchoolList").on("click", ".zoomTo", function() {
 		var lat = $(this).data("lat");
 		var long = $(this).data("long");
 		// schoolMap.flyTo([lat, long], 12, {duration: 0.2});
@@ -478,8 +530,19 @@ $(function() {
 
 	// Set up data display
 
+	function createSparkline(schoolName, parentSelector) {
+		var sparklineData = allSparklineData[schoolName];
+		
+		var sparklineID = `${parentSelector} .${createSafeName(schoolName)} .trend`;
+		var sparklineWidth = Math.max(80, Math.min(100, Math.floor( $(window).width() / 6 )));
+		var $sparkline = $(`<svg class='sparkline' width='${sparklineWidth}' height='26' stroke-width='2'></svg><span class='tooltip' hidden='true'></span>`);
+		$(sparklineID).append($sparkline);
+
+		sparkline.sparkline(document.querySelector(sparklineID + " svg"), sparklineData, sparklineOptions);
+	}
+
 	function displayData(args) {
-		var allSchools = args.allSchools;
+		// var allSchools = args.allSchools;
 		var schoolMap = args.schoolMap;
 		var sortKey = args.sortKey;
 
@@ -499,6 +562,11 @@ $(function() {
 			return school.cumulative;
 		}).reverse().each(function(school) {
 			var $schoolEl = $(school.element(true));
+
+			if (pinnedSchools.indexOf(school.safeName()) > -1) {
+				$schoolEl.addClass("pinned");
+			}
+
 			// Enable for case display
 			$schoolEl.find(".schoolStats").after("<div class='casesLabel'><i class='fas fa-list'></i> <strong>View individual cases</strong> <em>(Note that DOE data may not list every individual case.)</em></div><div class='casesOuter'><div class='casesInner'></div></div>");
 			$("#schoolList").append( $schoolEl );
@@ -523,17 +591,19 @@ $(function() {
 				schoolMap.addLayer(markers);	
 			}	
 
+			if (allCases.length > 0) {
+				_.chain(allCases).filter(function(theCase) {
+					return theCase.school == school.name;
+				}).each(function(theCase) {
+					$schoolEl.find('.casesInner').append( theCase.element() );
+					$schoolEl.find('.casesInner').css('width', 310 * school.cumulative + 'px');
+				});
+			}
+
+
 			if (school.cumulativeRecent > 0) {
 				// Sparkline
-
-				var sparklineData = allSparklineData[school.name];
-
-				var sparklineID = `#${createSafeName(school.name)} .trend`;
-				var sparklineWidth = Math.max(80, Math.min(100, Math.floor( $(window).width() / 6 )));
-				var $sparkline = $(`<svg class='sparkline' width='${sparklineWidth}' height='26' stroke-width='2'></svg><span class='tooltip' hidden='true'></span>`);
-				$(sparklineID).append($sparkline);
-
-				sparkline.sparkline(document.querySelector(sparklineID + " svg"), sparklineData, sparklineOptions);
+				createSparkline(school.name, "#schoolList");
 			}
 
 		});
@@ -754,6 +824,15 @@ $(function() {
 					}
 				}
 			});
+
+			// Set up pins from cookie
+			if (Cookies.get("pins") !== undefined) {
+				var existingPins = JSON.parse(Cookies.get("pins"));
+				_(existingPins).each(function(schoolName) {
+					var $schoolEl = $("."+schoolName);
+					pinSchool($schoolEl, false);
+				});
+			}
 
 
 			// Finish loading

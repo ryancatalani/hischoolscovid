@@ -209,6 +209,12 @@ header {
 		border-bottom: 1px solid #ccc;
 		margin-bottom: 20px;
 	}
+
+	#pinnedSchoolList {
+		.school {
+			margin-bottom: 0;
+		}
+	}
 }
 
 .school {
@@ -337,7 +343,7 @@ header {
 	}
 }
 
-#schoolList {
+#schoolList, #pinnedSchoolList {
 	.schoolStats {
 		grid-template-columns: repeat(4, 1fr);
 		.trendLabel, .trend {
@@ -381,7 +387,7 @@ header {
 	color: #666;
 }
 
-.zoomTo {
+.zoomTo, .pinBtn {
 	font-weight: normal; 
 	color: $blue;
 	margin-top: 5px;
@@ -399,11 +405,46 @@ header {
 	}
 }
 
+.unpinSchool {
+	display: none;
+}
+
+.pinned {
+	border-radius: 5px;
+	background: #fffaeb;
+	padding: 20px;
+	.unpinSchool {
+		display: inline;
+	}
+	.pinSchool {
+		display: none;
+	}
+	.casesLabel, .casesOuter {
+		background: #f0ebdd;
+	}
+	.sparkline--fill {
+	  fill: #f0ebdd;
+	}
+}
+
+#pinnedSchoolList {
+	margin-bottom: 40px;
+}
+
+.headerWithPins {
+	font-weight: bold;
+	padding-bottom: 0.4em;
+	border-bottom: 2px solid #000;
+	margin-bottom: 0.8em;
+	display: none;
+}
+
 .leaflet-popup-content {
-	.zoomTo {
+	.zoomTo, .pinBtnWrap {
 		display: none;
 	}
 }
+
 
 #sortBy {
 	margin-top: 5px;
