@@ -365,34 +365,37 @@ $(function() {
 
 	$("#schoolList, #pinnedSchoolList").on("click", ".casesLabel", function() {
 		var $casesWrap = $(this).next();
-		$casesWrap.slideToggle("fast");
 		$(this).toggleClass("active");
 		
 		if (allCases.length === 0) {
+			// Load data
 			$casesWrap.append('<div class="loading"><i class="fas fa-cog fa-spin"></i> Loading…</div>');
+			$casesWrap.slideDown("fast", function(){
+				$.when(pparse(casesURL)).done(function(casesData){
+					_(casesData.reverse()).each(function(row, index) {
+						var theCase = new Case({
+							school: row.school,
+							dateReported: row.date_reported_str,
+							publicSubmission: row["Public Submission"] == "TRUE",
+							count: row.count,
+							lastDateOnCampus: row.last_date_on_campus,
+							source: row.source
+						});
+						allCases.push(theCase);
 
-			$.when(pparse(casesURL)).done(function(casesData){
-				_(casesData.reverse()).each(function(row, index) {
-					var theCase = new Case({
-						school: row.school,
-						dateReported: row.date_reported_str,
-						publicSubmission: row["Public Submission"] == "TRUE",
-						count: row.count,
-						lastDateOnCampus: row.last_date_on_campus,
-						source: row.source
+						var schoolName = createSafeName(theCase.school);
+						var $schoolEl = $("." + schoolName);
+						$schoolEl.find('.casesInner').append( theCase.element() );
 					});
-					allCases.push(theCase);
-
-					var schoolName = createSafeName(theCase.school);
-					var $schoolEl = $("." + schoolName);
-					$schoolEl.find('.casesInner').append( theCase.element() );
+					_(allSchools).each(function(school) {
+						var $schoolEl = $("." + createSafeName(school.name));
+						$schoolEl.find('.casesInner').css('width', 310 * school.cumulative + 'px');	
+					});
+					$casesWrap.find(".loading").slideUp("fast");
 				});
-				_(allSchools).each(function(school) {
-					var $schoolEl = $("." + createSafeName(school.name));
-					$schoolEl.find('.casesInner').css('width', 310 * school.cumulative + 'px');	
-				});
-				$casesWrap.find(".loading").slideUp("fast");
 			});
+		} else {
+			$casesWrap.slideToggle("fast");
 		}
 	});
 
