@@ -3,12 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<title>Hawaiʻi Public Schools: Reported COVID-19 Cases</title>
-	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
-	  integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
-	  crossorigin=""/>
-	<link rel="stylesheet" type="text/css" href="main.css">
-	<link rel="stylesheet" type="text/css" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css">
-	<link rel="stylesheet" type="text/css" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css">
+	<link rel="stylesheet" type="text/css" href="./main.scss">
 
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta charset="utf-8"> 
@@ -41,7 +36,7 @@
 				<div id="aboutDataInner">
 					<p>Data updated daily on weekdays.</p>
 					<p>This data is primarily compiled from the <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/COVID-19-Information-Updates.aspx" target="_blank">Department of Education data dashboard</a>, starting from July 24, 2021. Public charter schools appear not to be included in the data.</p>
-					<p>If you have any data that’s missing, or see something inaccurate, click here to <a href="/submit.html">submit additional data</a>. Public data submissions are indicated in the list below.</p>
+					<p>If you have any data that’s missing, or see something inaccurate, click here to <a href="./submit.html">submit additional data</a>. Public data submissions are indicated in the list below.</p>
 					<p>School enrollment figures are from the 2021-22 school year, <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/2021-22-enrollment-figures-for-public-and-charter-schools.aspx" target="_blank">via the DOE</a>. The latest available data on the number of teachers and administrative staff is from the 2019-20 school year, <a href="http://arch.k12.hi.us/reports/ssir" target="_blank">via the DOE</a>. Administrative staff figures are only available as FTEs per school, rather than headcount.</p>
 					<p><a href="https://unofficialhidoecoviddashboard.hawaiicoder.com/" target="_blank">Click here</a> to see another community-drive visualization with this data by John Johnson.</p>
 				</div>
@@ -81,28 +76,9 @@
 		<div id="schoolList"></div>	
 	</div>
 
-	
 
-
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" referrerpolicy="no-referrer"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.1/papaparse.min.js" integrity="sha512-EbdJQSugx0nVWrtyK3JdQQ/03mS3Q1UiAhRtErbwl1YL/+e2hZdlIcSURxxh7WXHTzn83sjlh2rysACoJGfb6g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.1/underscore-min.js" referrerpolicy="no-referrer"></script>
-	<script src="https://cdn.jsdelivr.net/npm/d3-array@3"></script>
-	<script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
-	<script src="https://cdn.jsdelivr.net/npm/d3-format@3"></script>
-	<script src="https://cdn.jsdelivr.net/npm/d3-interpolate@3"></script>
-	<script src="https://cdn.jsdelivr.net/npm/d3-scale@4"></script>
-	<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
-	  integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
-	  crossorigin=""></script>
-	<script src="https://cdn.jsdelivr.net/npm/chart.js@3.5.1/dist/chart.min.js" integrity="sha256-bC3LCZCwKeehY6T4fFi9VfOU0gztUa+S4cnkIhVPZ5E=" crossorigin="anonymous"></script>
-	<script src="https://cdn.jsdelivr.net/npm/date-fns@2.23.0/index.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 	<script src="https://kit.fontawesome.com/28fbbd7eb8.js" crossorigin="anonymous"></script>
-	<script type="text/javascript" src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js" integrity="sha256-0H3Nuz3aug3afVbUlsu12Puxva3CP4EhJtPExqs54Vg=" crossorigin="anonymous"></script>
-	<script type="text/javascript" src="/sparkline.js"></script>
-	<script type="text/javascript" src="/main.js"></script>
+	<script type="module" src="./main.js"></script>
 
 	<script async src="https://www.googletagmanager.com/gtag/js?id=G-4X7GH9TRT2"></script>
 	<script>

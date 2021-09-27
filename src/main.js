@@ -1,3 +1,22 @@
+import * as $ from 'jquery';
+import * as L from 'leaflet';
+import MarkerClusterGroup from 'leaflet.markercluster';
+import Papa from 'papaparse';
+import _ from 'underscore';
+import Chart from 'chart.js/auto';
+import 'chartjs-adapter-date-fns';
+import * as d3 from 'd3-scale';
+import Cookies from 'js-cookie';
+import * as sparkline from '@fnando/sparkline';
+
+// https://github.com/parcel-bundler/parcel/issues/973#issuecomment-484470626
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  iconUrl: require('leaflet/dist/images/marker-icon.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+});
+
 class School {
 	constructor(args) {
 		this.name = args.name;
