@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Hawaiʻi Public Schools: Reported COVID-19 Cases</title>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+	  integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+	  crossorigin=""/>
+	<link rel="stylesheet" type="text/css" href="main.css">
+	<link rel="stylesheet" type="text/css" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css">
+	<link rel="stylesheet" type="text/css" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta charset="utf-8"> 
+
+	<meta property="og:title" content="Hawaiʻi Public Schools: Reported COVID-19 Cases" />
+	<meta property="og:description" content="See a list of all COVID-19 cases reported by school in the 2021-22 school year." />
+	<meta property="og:image" content="https://rcpublic.s3.amazonaws.com/doecovidsocial.jpg" />
+
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:site" content="@ryancatalani" />
+	<meta name="twitter:title" content="Hawaiʻi Public Schools: Reported COVID-19 Cases" />
+	<meta name="twitter:description" content="See a list of all COVID-19 cases reported by school in the 2021-22 school year." />
+	<meta name="twitter:image" content="https://rcpublic.s3.amazonaws.com/doecovidsocial.jpg" />
+
+	<meta name="description" content="See a list of all COVID-19 cases reported by school in the 2021-22 school year." />
+</head>
+<body>
+
+
+	<div id="schoolMap"></div>
+	<div id="mainContent">
+		<header>
+			<h1>Hawaiʻi Public Schools: Reported COVID-19 Cases</h1>
+			<p>Compiled by Ryan Catalani (<a href="https://twitter.com/ryancatalani">@ryancatalani</a>)</p>
+
+			<div id="aboutData">
+				<p id="aboutDataHeader"><i class="fas fa-info-circle"></i> <strong>About the data & submit missing data</strong></p>
+				<div id="aboutDataInner">
+					<p>Last updated: Aug. 20, 2021</p>
+					<p>This data is primarily compiled from the <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/COVID-19-Information-Updates.aspx" target="_blank">weekly Department of Education releases</a>, starting from July 24, 2021. The source data is accessible in <a href="https://docs.google.com/spreadsheets/d/1_38-GnUcrA4_jYAZpZWDl5ph4Gi_sAzg11PT9tMZW7Y/edit?usp=sharing" target="_blank">this Google Sheet</a>.</p>
+					<p>If you have any data that’s missing, or see something inaccurate, click here to <a href="/submit.html">submit additional data</a>. Public data submissions are indicated in the list below.</p>
+					<p>School enrollment figures are from the 2020-21 school year, <a href="https://www.hawaiipublicschools.org/ConnectWithUs/MediaRoom/PressReleases/Pages/2020-21-enrollment.aspx" target="_blank">via the DOE</a>.</p>
+				</div>
+			</div>
+
+			<div id="filter">
+				<label for="filterInput">Filter by school name:</label>
+				<span id="filterInputWrap">
+					<input type="text" name="filter" id="filterInput">
+					<span id="filterClear"><i class="fas fa-times-circle"></i></span>
+				</span>
+
+			</div>
+		</header>
+
+		<div id="loading">
+			<i class="fas fa-cog fa-spin"></i> Loading…
+		</div>
+		<div id="schoolList"></div>	
+	</div>
+
+	
+
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" referrerpolicy="no-referrer"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.1/papaparse.min.js" integrity="sha512-EbdJQSugx0nVWrtyK3JdQQ/03mS3Q1UiAhRtErbwl1YL/+e2hZdlIcSURxxh7WXHTzn83sjlh2rysACoJGfb6g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.1/underscore-min.js" referrerpolicy="no-referrer"></script>
+	<script src="https://d3js.org/d3-color.v1.min.js"></script>
+	<script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+	<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+	<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+	  integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+	  crossorigin=""></script>
+	<script src="https://kit.fontawesome.com/34652e81df.js" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js" integrity="sha512-KhIBJeCI4oTEeqOmRi2gDJ7m+JARImhUYgXWiOTIp9qqySpFUAJs09erGKem4E5IPuxxSTjavuurvBitBmwE0w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	<script type="text/javascript" src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+	<script type="text/javascript">
+		class School {
+			constructor(args) {
+				this.name = args.name;
+				this.lat = args.lat;
+				this.long = args.long;
+				this.cumulative = args.cumulative;
+				this.cumulativePublic = args.cumulativePublic;
+				this.marker = args.marker;
+				this.id = args.id;
+				this.enrollment = args.enrollment;
+			}
+			safeName() {
+				return createSafeName(this.name);
+			}
+			cumulativeText() {
+				var text = this.cumulative;
+				if (this.cumulativePublic !== undefined && this.cumulativePublic > 0) {
+					var doeTotal = this.cumulative - this.cumulativePublic;
+					text += " (DOE reported: " + doeTotal + ", "
+					text += "public submissions: " + this.cumulativePublic + ")";
+				}
+				return text;
+			}
+			enrollmentText() {
+				var text = "";
+				if (this.enrollment !== undefined && this.enrollment > 0) {
+					var ratio = Math.round((1.0 * this.enrollment) / this.cumulative);
+					text += "About 1 in " + ratio.toLocaleString() + " students ";
+					text += "(SY20-21 enrollment: " + this.enrollment.toLocaleString() + ")";
+				}
+				return text;
+			}
+			element() {
+				var template = _.template("<div class='school' data-name='<%= safeName %>'><div class='schoolName'><%= name %></div><div class='schoolDesc'>Total cases reported: <%= cumulative %><span class='zoomTo' data-lat='<%= lat %>' data-long='<%= long %>'><i class='fas fa-search-plus'></i> Zoom to this school</span></div><div class='schoolEnrollment'><%= enrollment %></div></div>");
+				return template({
+					name: this.name, 
+					safeName: this.safeName(),
+					cumulative: this.cumulativeText(),
+					lat: this.lat,
+					long: this.long,
+					enrollment: this.enrollmentText()
+				});
+			}
+		}
+		class Case {
+			constructor(args) {
+				this.school = args.school;
+				this.dateReported = args.dateReported;
+				this.lastDateOnCampus = args.lastDateOnCampus;
+				this.reportingPeriod = args.reportingPeriod;
+				this.source = args.source;
+				this.status = args.status;
+				this.publicSubmission = args.publicSubmission;
+			}
+			sourceText() {
+				if (this.publicSubmission) {
+					return "Public submission";
+				}
+				return "DOE data • Reporting period: " + this.reportingPeriod;
+			}
+			classText() {
+				var c = "case";
+				if (this.publicSubmission) {
+					c += " publicSubmission";
+				}
+				return c;
+			}
+			element() {
+				var template = _.template("<div class='<%= classText %>'><p><strong>Case <%= status %></strong></p><p>Date reported: <%= dateReported %></p><p>Last date individual was on campus: <%= lastDateOnCampus %></p><p>Source: <%= sourceText %></p><a href='<%= source %>' target='_blank'>View source</a>");
+				return template({
+					classText: this.classText(),
+					dateReported: this.dateReported,
+					lastDateOnCampus: this.lastDateOnCampus,
+					sourceText: this.sourceText(),
+					source: this.source,
+					status: this.status
+				});
+			}
+		}
+
+		var allSchools = [];
+		var allCases = [];
+
+		function createSafeName(input) {
+			return input.replace(/[^a-zA-Z]/gi, "").toLocaleUpperCase();
+		}
+
+		$("#aboutDataHeader").click(function() {
+			$("#aboutDataInner").slideToggle("fast");
+		});
+
+		$(function() {
+
+			// Set up map
+
+			var windowWidth = $(window).width();
+			var defaultZoom = 7;
+			if ($(window).width  > 700) {
+				defaultZoom = 8;
+			}
+			var calculateLayout = _.debounce(function(){
+				windowWidth = $(window).width();
+			}, 300);
+			$(window).resize(calculateLayout);
+
+			// https://github.com/Leaflet/Leaflet/issues/7255#issuecomment-849638476
+			var schoolMap = L.map('schoolMap', {
+				center: [21.311389, -157.796389],
+				zoom: defaultZoom,
+				"tap": false
+			});
+
+			L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+				attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+				subdomains: 'abcd',
+				maxZoom: 19
+			}).addTo(schoolMap);
+
+			var markers = L.markerClusterGroup({
+				iconCreateFunction: function(cluster) {
+					return L.divIcon({ 
+						html: '<div class="clusterIconCount"><strong>' + cluster.getChildCount() + '</strong> Schools</div>',
+						className: "clusterIcon",
+						iconSize: [40,40]
+					});
+				}
+			});
+
+			markers.on('clusterclick', function (a) {
+				a.layer.zoomToBounds({padding: [20, 20]});
+			});
+
+			// Set up filter
+
+			var runFilter = _.debounce(function() {
+				$("#loading").slideDown("fast");
+				var input = createSafeName($("#filterInput").val());
+
+				if (input == "") {
+					$("#filterClear").hide();
+					$("#loading").slideUp("fast");
+					_(allSchools).each(function(school) {
+						if (school.marker !== undefined && !markers.hasLayer(school.marker)) {
+							var marker = school.marker;
+							markers.addLayer(marker);
+						}
+					});
+					return $(".school").show();
+				}
+
+				$("#filterClear").show();
+				$(".school").each(function() {
+					var name = $(this).data('name');
+					var school = _(allSchools).find(function(s) {
+						return s.safeName() == name;
+					});
+					
+					var schoolHasMarker = false;
+					var marker;
+					if (school !== undefined && school.marker !== undefined ) {
+						schoolHasMarker = true;
+						marker = school.marker;
+					}
+
+					if (name.indexOf(input) >= 0) {
+						$(this).show();
+						if ( schoolHasMarker && !markers.hasLayer(marker) ) {
+							markers.addLayer(marker);
+						}
+					} else {
+						$(this).hide();
+						if ( schoolHasMarker && markers.hasLayer(marker) ) {
+							markers.removeLayer(marker);
+						}
+					}
+				});
+				$("#loading").slideUp("fast");
+			}, 150);
+
+			$("#filterInput").keyup(runFilter);
+			$("#filterClear").click(function() {
+				$("#filterInput").val("").trigger("keyup");
+			})
+
+			// Set up Zoom
+
+			$("#schoolList").on("click", ".zoomTo", function() {
+				var lat = $(this).data("lat");
+				var long = $(this).data("long");
+				// schoolMap.flyTo([lat, long], 12, {duration: 0.2});
+
+				var name = $(this).parents(".school").data("name");
+				var school = _(allSchools).find(function(s) { return s.safeName() == name });
+				if (school !== undefined && school.marker !== undefined ) {
+					var marker = school.marker;
+					markers.zoomToShowLayer(marker, function() {
+						marker.openPopup();
+					});
+				}
+			});
+
+			// Set up data
+
+			var dataURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYH-1yDrq_TA7k3IUYy0J7SVbSRO850SmeUjXVOo0K7PSPqdBXAsjgO4sjmpFLZ3vamRmUBZMWg2Iy/pub?gid=0&single=true&output=csv";
+			var schoolsURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYH-1yDrq_TA7k3IUYy0J7SVbSRO850SmeUjXVOo0K7PSPqdBXAsjgO4sjmpFLZ3vamRmUBZMWg2Iy/pub?gid=1271858449&single=true&output=csv";
+			var crosswalkURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYH-1yDrq_TA7k3IUYy0J7SVbSRO850SmeUjXVOo0K7PSPqdBXAsjgO4sjmpFLZ3vamRmUBZMWg2Iy/pub?gid=280592408&single=true&output=csv";
+
+			function pparse(url) {
+				var d = $.Deferred();
+				Papa.parse(url, {
+					download: true,
+					header: true,
+					complete: function(results) {
+						d.resolve(results.data);
+					}
+				});
+				return d.promise();
+			}
+
+			$.when( pparse(dataURL), pparse(schoolsURL), pparse(crosswalkURL) )
+				.done(function(caseData, schools, crosswalk) {
+
+					// Parse data
+
+					_.chain(caseData).each(function(row) {
+						var theCase = new Case({
+							school: row["School Name"],
+							dateReported: row["Date Case Reported"],
+							lastDateOnCampus: row["Last date individual was on campus"],
+							reportingPeriod: row["Reporting period"],
+							source: row["Source"],
+							status: row["Case Status"],
+							publicSubmission: row["Public Submission"] == "TRUE"
+						});
+						allCases.push(theCase);
+
+					}).groupBy(function(row){
+						return row["School Name"];
+
+					}).each(function(schoolCases, schoolName) {
+						var cumulativePublic = _(schoolCases).filter(function(row){ return row["Public Submission"] == "TRUE" });
+
+						var school = new School({
+							name: schoolName,
+							cumulative: schoolCases.length,
+							cumulativePublic: cumulativePublic.length
+						});
+
+						var crosswalkItem = _(crosswalk).find(function(pairing) {
+							return pairing["Data name"] == schoolName;
+						});
+
+						if (crosswalkItem !== undefined) {
+							var stdID = crosswalkItem["SchoolID"];
+							school.id = stdID;
+
+							var schoolObj = _(schools).find(function(sch) {
+								return sch["sch_code"] == stdID;
+							});	
+						} else {
+							console.log("undefined", school);
+						}
+						
+						if (schoolObj !== undefined) {
+							school.lat = parseFloat(schoolObj["Y"]);
+							school.long = parseFloat(schoolObj["X"]);
+							school.enrollment = parseInt(schoolObj.Enrollment);
+						}
+
+						allSchools.push(school);
+					});
+
+					// Display data
+
+					_.chain(allSchools).sortBy(function(school) {
+						return school.name;
+					}).reverse().sortBy(function(school) {
+						return school.cumulative;
+					}).reverse().each(function(school) {
+						var $schoolEl = $(school.element());
+						$schoolEl.append("<div class='casesOuter'><div class='casesInner'></div></div>");
+						$("#schoolList").append( $schoolEl );
+
+						if (school.lat !== undefined && school.long !== undefined) {
+							var icon =  L.divIcon({
+								className: 'marker-icon',
+								html: '<i id="marker' + school.id + '" class="fas fa-map-pin fa-3x"></i>',
+								iconSize: [20,36],
+								iconAnchor: [10,36],
+								popupAnchor: [0,-20]
+							});
+
+							var marker = L.marker([school.lat, school.long]);
+							marker.bindPopup(school.element());
+							// marker.addTo(schoolMap);
+							markers.addLayer(marker);
+
+							school.marker = marker;	
+						}
+
+						schoolMap.addLayer(markers);
+
+						_.chain(allCases).filter(function(theCase) {
+							return theCase.school == school.name;
+						}).each(function(theCase) {
+							$schoolEl.find('.casesInner').append( theCase.element() );
+							$schoolEl.find('.casesInner').css('width', 310 * school.cumulative + 'px');
+						});
+
+					});
+
+					// Color markers
+
+					var caseCounts = _(allSchools).map(function(school) { return parseInt(school.cumulative) }).sort(function(a, b) {
+						return a-b;
+					});
+					var minCaseCount = caseCounts[0];
+					var maxCaseCount = caseCounts[caseCounts.length-1];
+
+					// _(allSchools).each(function(school) {
+					// 	if (school.marker !== undefined) {
+					// 		var val = (1.0 * school.cumulative - minCaseCount) / (maxCaseCount - minCaseCount);
+					// 		var color = d3.interpolatePlasma(val);
+					// 		var markerID = "#marker" + school.id;
+					// 		console.log(school.name, val, markerID);
+					// 		$(markerID).css('color', color);
+					// 	}
+					// });
+
+					// Heatmap
+					
+					var heatmapPoints = _.chain(allSchools).filter(function(school) {
+						return school.lat !== undefined && school.long !== undefined;
+					}).map(function(school) {
+						return [school.lat, school.long, school.cumulative];
+					}).value();
+					var heat = L.heatLayer(heatmapPoints, {
+						max: maxCaseCount,
+						maxZoom: 11,
+						gradient: {0.2: '#2c7bb6',
+							0.4: '#abd9e9',
+							0.6: '#ffffbf',
+							0.8: '#fdae61',
+							1: '#d7191c'}
+					}).addTo(schoolMap);
+
+					$("#loading").slideUp("fast");
+
+				});
+
+		})
+	</script>
+
+	<script async src="https://www.googletagmanager.com/gtag/js?id=G-4X7GH9TRT2"></script>
+	<script>
+	  window.dataLayer = window.dataLayer || [];
+	  function gtag(){dataLayer.push(arguments);}
+	  gtag('js', new Date());
+
+	  gtag('config', 'G-4X7GH9TRT2');
+	</script>
+
+</body>
+</html>
