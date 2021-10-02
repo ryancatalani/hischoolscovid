@@ -470,7 +470,7 @@ $(function() {
 			}
 		}
 
-		Cookies.set('pins', JSON.stringify(pinnedSchools));
+		Cookies.set('pins', JSON.stringify(pinnedSchools), {expires: 365});
 	});
 
 	// Set up filter
