@@ -70,9 +70,30 @@ def parse_cases(sheet, s3)
 		school = sheet.cell(row_index, 2)
 		if school.nil?
 			school = parsed_cases[row_index-2][:school]
+		else
+			# Data checks
+			# Check if cell parsed with next column data
+			school_with_next_col_regex = /([a-zA-Z& ]+?)\s{2,}(\d+)/
+			if school =~ school_with_next_col_regex
+				school = school.match(school_with_next_col_regex)[1]
+			end
+			# Check if school name is incomplete
+			# Check next row
+			this_row_has_meta = !sheet.cell(row_index, 3).nil?
+			next_row_has_name = !sheet.cell(row_index+1, 2).nil?
+			next_row_has_meta = !sheet.cell(row_index+1, 3).nil?
+			if this_row_has_meta && next_row_has_name && !next_row_has_meta
+				school = "#{school.strip} #{sheet.cell(row_index+1, 2).strip}"
+			end
+			# Then, check preceeding row
+			prev_row_has_name = !sheet.cell(row_index-1, 2).nil?
+			prev_row_has_meta = !sheet.cell(row_index-1, 3).nil?
+			if prev_row_has_name && prev_row_has_meta && !this_row_has_meta
+				school = "#{sheet.cell(row_index-1, 2).strip} #{school}"
+			end
 		end
 
-		date_reported_str = sheet.cell(row_index, 3)
+		date_reported_str = sheet.cell(row_index, 6)
 		date_reported = nil
 		if date_reported_str.nil?
 			date_reported_str = parsed_cases[row_index-2][:date_reported_str]
@@ -81,13 +102,13 @@ def parse_cases(sheet, s3)
 			date_reported = Date.parse(date_reported_str)
 		end
 
-		last_date_on_campus = sheet.cell(row_index, 4)
+		last_date_on_campus = sheet.cell(row_index, 7)
 		if last_date_on_campus.nil?
 			last_date_on_campus = "Unspecified"
 		end
 
-		island = sheet.cell(row_index, 5)
-		count = sheet.cell(row_index, 6)
+		island = sheet.cell(row_index, 8)
+		count = sheet.cell(row_index, 9)
 		source = "https://public.tableau.com/app/profile/hidoe.dga/viz/COVID-19HIDOECaseCountPublicDashboard/List"
 
 		if (island =~ /\n/ && count =~ /\n/)
