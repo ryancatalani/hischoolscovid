@@ -7,11 +7,6 @@ require "json"
 require "csv"
 require "pry"
 
-s3 = Aws::S3::Resource.new(region: ENV['S3_REGION'])
-
-xlsx = Roo::Spreadsheet.open(ARGV[0])
-sheet = xlsx.sheet(0)
-
 def to_csv_str(arr)
 	# Array of hashes
 	csv_str = CSV.generate do |csv|
@@ -169,13 +164,11 @@ def parse_cases(sheet, s3)
 		all_cases_by_date: all_cases_by_date
 	}
 
-	if !s3.nil?
-		s3.bucket(ENV['S3_BUCKET']).object("doe_cases/cases.csv").put(body: to_csv_str(parsed_cases), acl: "public-read")
-		puts "✅  Saved cases to S3."
-	end
-
-	parse_complex_areas(parsed_cases, latest_case_date, s3)
-	parse_schools(parsed_cases, latest_case_date, meta, s3)
+	return {
+		parsed_cases: parsed_cases,
+		meta: meta,
+		latest_case_date: latest_case_date
+	}
 end
 
 def parse_schools(parsed_cases, latest_case_date, meta, s3)
@@ -238,13 +231,12 @@ def parse_schools(parsed_cases, latest_case_date, meta, s3)
 
 	meta[:schools_last_2_weeks] = schools_meta
 
-	if !s3.nil?
-		s3.bucket(ENV['S3_BUCKET']).object("doe_cases/schools.csv").put(body: to_csv_str(schools), acl: "public-read")
-		puts "✅  Saved schools to S3."
+	return {
+		schools: schools,
+		meta: meta
+	}
 
-		s3.bucket(ENV['S3_BUCKET']).object("doe_cases/meta.json").put(body: meta.to_json, acl: "public-read")
-		puts "✅  Saved meta to S3."
-	end
+	
 end
 
 def parse_complex_areas(parsed_cases, latest_case_date, s3)
@@ -266,11 +258,43 @@ def parse_complex_areas(parsed_cases, latest_case_date, s3)
 		# geojson["features"][index]["properties"]["case_total"] = cases_in_area.sum{|c| c[:count]}
 		# geojson["features"][index]["properties"]["recent_case_total"] = recent_cases_in_area.sum{|c| c[:count]}
 	end
-	
-	if !s3.nil?
-		s3.bucket(ENV['S3_BUCKET']).object("doe_cases/complexareas.json").put(body: complex_areas.to_json, acl: "public-read")
-		puts "✅  Saved complex areas to S3."
-	end
+
+	return complex_areas
 end
 
-parse_cases(sheet, s3)
+def run
+	s3 = Aws::S3::Resource.new(region: ENV['S3_REGION'])
+	xlsx = Roo::Spreadsheet.open(ARGV[0])
+	sheet = xlsx.sheet(0)
+	
+	parsed_cases_values = parse_cases(sheet, s3)
+	parsed_cases = parsed_cases_values[:parsed_cases]
+	intermediate_meta = parsed_cases_values[:meta]
+	latest_case_date = parsed_cases_values[:latest_case_date]
+
+	complex_areas = parse_complex_areas(parsed_cases, latest_case_date, s3)
+	
+	schools_values = parse_schools(parsed_cases, latest_case_date, intermediate_meta, s3)
+	schools = schools_values[:schools]
+	meta = schools_values[:meta]
+
+	puts "Save to S3? [Y/N]"
+	save_to_s3 = $stdin.gets.chomp
+
+	if save_to_s3 == "Y"
+		s3.bucket(ENV['S3_BUCKET']).object("doe_cases/cases.csv").put(body: to_csv_str(parsed_cases), acl: "public-read")
+		puts "✅  Saved cases to S3."
+
+		s3.bucket(ENV['S3_BUCKET']).object("doe_cases/complexareas.json").put(body: complex_areas.to_json, acl: "public-read")
+		puts "✅  Saved complex areas to S3."
+
+		s3.bucket(ENV['S3_BUCKET']).object("doe_cases/schools.csv").put(body: to_csv_str(schools), acl: "public-read")
+		puts "✅  Saved schools to S3."
+
+		s3.bucket(ENV['S3_BUCKET']).object("doe_cases/meta.json").put(body: meta.to_json, acl: "public-read")
+		puts "✅  Saved meta to S3."
+	end
+
+end
+
+run
