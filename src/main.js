@@ -403,6 +403,9 @@ $(function() {
 							lastDateOnCampus: row.last_date_on_campus,
 							source: row.source
 						});
+						if (row.source === "" || row.source === null) {
+							theCase.source = "https://public.tableau.com/app/profile/hidoe.dga/viz/COVID-19HIDOECaseCountPublicDashboard/List";
+						}
 						allCases.push(theCase);
 
 						var schoolName = createSafeName(theCase.school);

@@ -104,7 +104,7 @@ def parse_cases(sheet, s3)
 
 		island = sheet.cell(row_index, 8)
 		count = sheet.cell(row_index, 9)
-		source = "https://public.tableau.com/app/profile/hidoe.dga/viz/COVID-19HIDOECaseCountPublicDashboard/List"
+		source = ""
 
 		if (island =~ /\n/ && count =~ /\n/)
 			# PDF parsed incorrectly and row needs to be manually split
