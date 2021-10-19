@@ -741,24 +741,29 @@ $(function() {
 			var colorRange = ["#fecc5c","#fd8d3c","#f03b20","#bd0026"];
 			// var colorRange = ["#faa476","#f0746e","#dc3977","#b9257a"];
 			var scale = d3.scaleQuantile()
-				.domain([minCaseCount, maxCaseCount])
+				.domain([0, 100])
 				.range(colorRange);
 			
 			var colorLegend = "<div id='legend'><strong>Cases in complex area in past 2 weeks</strong><ul>";
 			var quantiles = scale.quantiles();
+			console.log(quantiles);
 			for (var i = 0; i < colorRange.length; i++) {
 				var color = colorRange[i];
+				var separator = "-";
 				var lowerBound = quantiles[i-1];
 				if (lowerBound === undefined) {
 					lowerBound = minCaseCount;
 				}
 				var upperBound = quantiles[i];
 				if (upperBound === undefined) {
-					upperBound = maxCaseCount;
+					upperBound = "";
+					separator = "+";
+				} else {
+					upperBound = Math.floor(upperBound);
 				}
 				colorLegend += `<li>
 					<span class='legendColor' style='background-color:${color}'></span>
-					${Math.ceil(lowerBound)}-${Math.floor(upperBound)}
+					${Math.ceil(lowerBound)}${separator}${upperBound}
 				</li>`;
 			}
 			$("#schoolMapWrap").append(colorLegend);
