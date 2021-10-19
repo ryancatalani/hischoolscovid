@@ -815,7 +815,8 @@ $(function() {
 					// aspectRatio: 2.5,
 					maintainAspectRatio: false,
 					interaction: {
-						mode: 'index'
+						mode: 'index',
+						intersect: false
 					},
 					scales: {
 						x: {
