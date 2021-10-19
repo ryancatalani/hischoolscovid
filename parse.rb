@@ -86,6 +86,15 @@ def parse_cases(sheet, s3)
 			if prev_row_has_name && prev_row_has_meta && !this_row_has_meta
 				school = "#{sheet.cell(row_index-1, 2).strip} #{school}"
 			end
+			# Check if next row name is the same,
+			# then check the next row after that.
+			# (This can happen on a PDF line break)
+			next_row_name = sheet.cell(row_index+1, 2)
+			subsequent_row_name = sheet.cell(row_index+2, 2)
+			subsequent_row_has_meta = !sheet.cell(row_index+2, 3).nil?
+			if next_row_has_name && school == next_row_name && !subsequent_row_name.nil? && !subsequent_row_has_meta
+				school = "#{school} #{subsequent_row_name.strip}"
+			end
 		end
 
 		date_reported_str = sheet.cell(row_index, 6)
