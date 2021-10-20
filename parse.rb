@@ -67,6 +67,12 @@ def parse_cases(sheet, s3)
 			school = parsed_cases[row_index-2][:school]
 		else
 			# Data checks
+			school_name_col = 2
+			school_meta_col = 4
+
+			# Check for newline
+			school = school.gsub(/\n/," ")
+
 			# Check if cell parsed with next column data
 			school_with_next_col_regex = /([a-zA-Z& ]+?)\s{2,}(\d+)/
 			if school =~ school_with_next_col_regex
@@ -74,24 +80,24 @@ def parse_cases(sheet, s3)
 			end
 			# Check if school name is incomplete
 			# Check next row
-			this_row_has_meta = !sheet.cell(row_index, 3).nil?
-			next_row_has_name = !sheet.cell(row_index+1, 2).nil?
-			next_row_has_meta = !sheet.cell(row_index+1, 3).nil?
+			this_row_has_meta = !sheet.cell(row_index, school_meta_col).nil?
+			next_row_has_name = !sheet.cell(row_index+1, school_name_col).nil?
+			next_row_has_meta = !sheet.cell(row_index+1, school_meta_col).nil?
 			if this_row_has_meta && next_row_has_name && !next_row_has_meta
-				school = "#{school.strip} #{sheet.cell(row_index+1, 2).strip}"
+				school = "#{school.strip} #{sheet.cell(row_index+1, school_name_col).strip}"
 			end
 			# Then, check preceeding row
-			prev_row_has_name = !sheet.cell(row_index-1, 2).nil?
-			prev_row_has_meta = !sheet.cell(row_index-1, 3).nil?
+			prev_row_has_name = !sheet.cell(row_index-1, school_name_col).nil?
+			prev_row_has_meta = !sheet.cell(row_index-1, school_meta_col).nil?
 			if prev_row_has_name && prev_row_has_meta && !this_row_has_meta
-				school = "#{sheet.cell(row_index-1, 2).strip} #{school}"
+				school = "#{sheet.cell(row_index-1, school_name_col).strip} #{school}"
 			end
 			# Check if next row name is the same,
 			# then check the next row after that.
 			# (This can happen on a PDF line break)
-			next_row_name = sheet.cell(row_index+1, 2)
-			subsequent_row_name = sheet.cell(row_index+2, 2)
-			subsequent_row_has_meta = !sheet.cell(row_index+2, 3).nil?
+			next_row_name = sheet.cell(row_index+1, school_name_col)
+			subsequent_row_name = sheet.cell(row_index+2, school_name_col)
+			subsequent_row_has_meta = !sheet.cell(row_index+2, school_meta_col).nil?
 			if next_row_has_name && school == next_row_name && !subsequent_row_name.nil? && !subsequent_row_has_meta
 				school = "#{school} #{subsequent_row_name.strip}"
 			end
