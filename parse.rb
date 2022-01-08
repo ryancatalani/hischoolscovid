@@ -312,4 +312,22 @@ def run
 
 end
 
+def all_totals
+	s3 = Aws::S3::Resource.new(region: ENV['S3_REGION'])
+
+	files = Dir.glob("/Users/ryancatalani/Desktop/Projects/Personal/DOE\ cases/*.xlsx")
+	files.each do |fname|
+		puts fname.split("-").last
+		begin
+			xlsx = Roo::Spreadsheet.open(fname)
+			sheet = xlsx.sheet(0)
+			parsed_cases_values = parse_cases(sheet, s3)
+		rescue
+			puts "error"
+		end
+	end
+end
+
+# all_totals
+
 run
