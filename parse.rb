@@ -24,22 +24,32 @@ def group_cases_by_date(args)
 	case_max_date = args[:max]
 	initial_value = args[:initial_value]
 
+	# based on date reported
 	# d: daily, c: cumulative, a: 7-day average
+	# based on last date on campus
+	# dd: daily, cc: cumulative, aa: 7-day average
 
 	grouped = (case_min_date..case_max_date).map do |date|
 		{
 			date: date.strftime("%B %d, %Y"),
-			d: cases.filter{|c| c[:date_reported] == date }.sum{|c| c[:count]}
+			d: cases.filter{|c| c[:date_reported] == date }.sum{|c| c[:count]},
+			dd: cases.filter{|c| c[:last_date_on_campus] == date }.sum{|c| c[:count]}
 		}
 	end
 	grouped.each_with_index do |g,i|
 		cumulative = grouped[0..i].sum{|c| c[:d]} + initial_value
 		grouped[i][:c] = cumulative
 
+		cumulative_by_last_date_on_campus = grouped[0..i].sum{|c| c[:dd]} + initial_value
+		grouped[i][:cc] = cumulative_by_last_date_on_campus
+
 		if i >= 6
 			# at least 7 days of values
 			avg = grouped[i-6..i].sum{|c| c[:d]}.to_f / 7.0
 			grouped[i][:a] = avg.round
+
+			avg_by_last_date_on_campus = grouped[i-6..i].sum{|c| c[:dd]}.to_f / 7.0
+			grouped[i][:aa] = avg_by_last_date_on_campus.round
 		end
 	end
 
@@ -112,9 +122,9 @@ def parse_cases(sheet, s3)
 			date_reported = Date.parse(date_reported_str)
 		end
 
-		last_date_on_campus = sheet.cell(row_index, 7)
-		if last_date_on_campus.nil?
-			last_date_on_campus = "Unspecified"
+		last_date_on_campus = "Unspecified"
+		if !sheet.cell(row_index, 7).nil? && sheet.cell(row_index, 7) != "Null"
+			last_date_on_campus = Date.parse(sheet.cell(row_index, 7))
 		end
 
 		island = sheet.cell(row_index, 8)
