@@ -33,7 +33,7 @@ def group_cases_by_date(args)
 		}
 	end
 	grouped.each_with_index do |g,i|
-		cumulative = grouped[0..i+1].sum{|c| c[:d]} + initial_value
+		cumulative = grouped[0..i].sum{|c| c[:d]} + initial_value
 		grouped[i][:c] = cumulative
 
 		if i >= 6
