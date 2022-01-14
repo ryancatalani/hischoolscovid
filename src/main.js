@@ -752,7 +752,7 @@ $(function() {
 				var separator = "-";
 				var lowerBound = quantiles[i-1];
 				if (lowerBound === undefined) {
-					lowerBound = minCaseCount;
+					lowerBound = 0;
 				}
 				var upperBound = quantiles[i];
 				if (upperBound === undefined) {
