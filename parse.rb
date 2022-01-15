@@ -132,14 +132,20 @@ def parse_cases(sheet, s3)
 
 		date_reported_str = sheet.cell(row_index, 6)
 		date_reported = nil
+		last_date_on_campus = "Unspecified"
+
+		space_separator_regex = /\s{3,}/
+		if date_reported_str =~ space_separator_regex
+			date_reported_str, last_date_on_campus = date_reported_str.split(space_separator_regex)
+		end
+
 		if date_reported_str.nil?
 			date_reported_str = parsed_cases[row_index-2][:date_reported_str]
 			date_reported = parsed_cases[row_index-2][:date_reported]
 		else
 			date_reported = Date.parse(date_reported_str)
 		end
-
-		last_date_on_campus = "Unspecified"
+		
 		if !sheet.cell(row_index, 7).nil? && sheet.cell(row_index, 7) != "Null"
 			last_date_on_campus = Date.parse(sheet.cell(row_index, 7))
 		end
