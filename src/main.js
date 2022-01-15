@@ -710,24 +710,23 @@ $(function() {
 			$("#lastUpdatedText").text(metaData.last_updated);
 			$("#lastUpdated").slideDown("fast");
 
-			// _(casesData).each(function(row) {
-			// 	var theCase = new Case({
-			// 		school: row.school,
-			// 		dateReported: row.date_reported_str,
-			// 		publicSubmission: row["Public Submission"] == "TRUE",
-			// 		count: row.count,
-			// 		lastDateOnCampus: row.last_date_on_campus,
-			// 		source: row.source
-			// 	});
-			// 	allCases.push(theCase);
-			// });
-
 			// Display data
 
 			allSparklineData = metaData.schools_last_2_weeks;
 			displayData({allSchools: allSchools, schoolMap: schoolMap, sortKey: "recent" });
 
+			// Set up schools with no recent cases
+
+			_(metaData.schools_no_recent_cases_reported).each(function(school) {
+				$("#noRecent").find("ul").append(`<li>${school.name}: ${school.latest_case_date}</li>`);
+			});
+			$("#showNoRecent").click(function() {
+				$("#noRecent").toggleClass("active");
+				$("#noRecent").find("ul").slideToggle("fast");
+			});
+
 			// Display complex areas
+
 			var complexAreaCounts = _.chain(allComplexAreas).map(function(complex) {
 				return complex.recentCaseTotal;
 			}).filter(function(num) {
