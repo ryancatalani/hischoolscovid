@@ -226,6 +226,7 @@ end
 def parse_schools(parsed_cases, latest_case_date, meta, s3)
 	schools = []
 	schools_meta = {}
+	schools_no_recent_cases_reported = []
 	all_school_data = SmarterCSV.process('schoolslist.csv')
 
 	school_names = parsed_cases.map{|c| c[:school]} + all_school_data.map{|s| s[:sch_name]}
@@ -234,6 +235,16 @@ def parse_schools(parsed_cases, latest_case_date, meta, s3)
 	school_names.each do |school_name|
 
 		school_cases = parsed_cases.filter{|c| c[:school] == school_name}
+
+		if !school_cases.empty?
+			latest_school_case_date = school_cases.sort_by{|c| c[:date_reported]}.last[:date_reported]
+			if (latest_case_date - latest_school_case_date > 28)
+				schools_no_recent_cases_reported << {
+					name: school_name,
+					latest_reported_case: latest_school_case_date
+				}
+			end
+		end
 		
 		cumulative_recent = school_cases.filter{|c| latest_case_date - c[:date_reported] <= 14}.sum{|c| c[:count]}
 		prev_two_weeks = school_cases.filter{ |c| 
@@ -281,7 +292,12 @@ def parse_schools(parsed_cases, latest_case_date, meta, s3)
 		schools_meta[school_name] = daily_cases_last_2_weeks
 	end
 
+	schools_no_recent_cases_reported = schools_no_recent_cases_reported
+		.sort_by{|s| s[:latest_reported_case] }
+		.map{|s| {name: s[:name], latest_case_date: s[:latest_reported_case].strftime(DATE_FORMAT)}  }
+
 	meta[:schools_last_2_weeks] = schools_meta
+	meta[:schools_no_recent_cases_reported] = schools_no_recent_cases_reported
 
 	return {
 		schools: schools,
