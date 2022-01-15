@@ -18,6 +18,23 @@ def to_csv_str(arr)
 	return csv_str.chomp
 end
 
+def save_csv_file(arr, fname)
+	CSV.open(fname, "wb") do |csv|
+		csv << arr.first.keys
+		arr.each do |row|
+			csv << row.values
+		end
+	end
+	puts "☑️ Saved #{fname}"
+end
+
+def save_json_file(obj, fname)
+	File.open(fname, "w") do |f|
+		f.write(JSON.pretty_generate(obj))
+	end
+	puts "☑️ Saved #{fname}"
+end
+
 def group_cases_by_date(args)
 	cases = args[:cases]
 	case_min_date = args[:min]
@@ -303,7 +320,7 @@ def run
 	schools = schools_values[:schools]
 	meta = schools_values[:meta]
 
-	puts "Save to S3? [Y/N]"
+	puts "Save to S3? [Y/Preview/N]"
 	save_to_s3 = $stdin.gets.chomp
 
 	if save_to_s3 == "Y"
@@ -318,6 +335,11 @@ def run
 
 		s3.bucket(ENV['S3_BUCKET']).object("doe_cases/meta.json").put(body: meta.to_json, acl: "public-read")
 		puts "✅  Saved meta to S3."
+	elsif save_to_s3 == "Preview"
+		save_csv_file(parsed_cases, "parsed_cases.csv")
+		save_json_file(complex_areas, "complexareas.json")
+		save_csv_file(schools, "schools.csv")
+		save_json_file(meta, "meta.json")
 	end
 
 end
