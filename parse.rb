@@ -20,8 +20,9 @@ def to_csv_str(arr)
 	return csv_str.chomp
 end
 
-def save_csv_file(arr, fname)
-	CSV.open(fname, "wb") do |csv|
+def save_csv_file(arr, fname, dir="preview")
+	path = File.join(Dir.pwd, dir, fname)
+	CSV.open(path, "wb") do |csv|
 		csv << arr.first.keys
 		arr.each do |row|
 			csv << row.values
@@ -30,8 +31,9 @@ def save_csv_file(arr, fname)
 	puts "☑️ Saved #{fname}"
 end
 
-def save_json_file(obj, fname)
-	File.open(fname, "w") do |f|
+def save_json_file(obj, fname, dir="preview")
+	path = File.join(Dir.pwd, dir, fname)
+	File.open(path, "w") do |f|
 		f.write(JSON.pretty_generate(obj))
 	end
 	puts "☑️ Saved #{fname}"
