@@ -7,6 +7,8 @@ require "json"
 require "csv"
 require "pry"
 
+DATE_FORMAT = "%B %-d, %Y"
+
 def to_csv_str(arr)
 	# Array of hashes
 	csv_str = CSV.generate do |csv|
@@ -48,7 +50,7 @@ def group_cases_by_date(args)
 
 	grouped = (case_min_date..case_max_date).map do |date|
 		{
-			date: date.strftime("%B %d, %Y"),
+			date: date.strftime(DATE_FORMAT),
 			d: cases.filter{|c| c[:date_reported] == date }.sum{|c| c[:count]},
 			dd: cases.filter{|c| c[:last_date_on_campus] == date }.sum{|c| c[:count]}
 		}
@@ -207,7 +209,7 @@ def parse_cases(sheet, s3)
 	})
 
 	meta = {
-		last_updated: Time.now.strftime("%B %d, %Y"),
+		last_updated: Time.now.strftime(DATE_FORMAT),
 		grand_total: grand_total,
 		all_cases_by_date: all_cases_by_date
 	}
